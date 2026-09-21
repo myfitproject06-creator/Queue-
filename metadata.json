@@ -1,0 +1,6 @@
+{
+  "name": "PAINT QUEUE",
+  "description": "ระบบจัดคิวสำหรับพนักงานขายในแผนกสี แยกระหว่าง PC กลางฝั่งซ้าย (LEFT) และฝั่งขวา (RIGHT) เที่ยงตรงตามเวลาจริง พร้อมระบบสลับฝั่งตอน 12:00 และบันทึก Audit Log ป้องกันการแซงคิว",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

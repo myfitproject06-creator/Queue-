@@ -1,0 +1,557 @@
+{
+  "employees": [
+    {
+      "id": "emp_01",
+      "name": "สมชาย (เอ)",
+      "nickname": "A",
+      "active": true,
+      "avatarColor": "#2563eb",
+      "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80",
+      "brand": "Nippon Paint",
+      "brandCode": "NPT"
+    },
+    {
+      "id": "emp_02",
+      "name": "สมศักดิ์ (บี)",
+      "nickname": "B",
+      "active": true,
+      "avatarColor": "#0284c7",
+      "avatarUrl": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=300&auto=format&fit=crop&q=80",
+      "brand": "TOA",
+      "brandCode": "TOA"
+    },
+    {
+      "id": "emp_03",
+      "name": "วนิดา (ซี)",
+      "nickname": "C",
+      "active": true,
+      "avatarColor": "#0891b2",
+      "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
+      "brand": "JBP",
+      "brandCode": "JBP"
+    },
+    {
+      "id": "emp_04",
+      "name": "กิตติพงษ์ (ดี)",
+      "nickname": "D",
+      "active": true,
+      "avatarColor": "#0d9488",
+      "avatarUrl": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=300&auto=format&fit=crop&q=80",
+      "brand": "Beger",
+      "brandCode": "BGR"
+    },
+    {
+      "id": "emp_05",
+      "name": "ภัทรพล (อี)",
+      "nickname": "E",
+      "active": true,
+      "avatarColor": "#16a34a",
+      "avatarUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80",
+      "brand": "Captain",
+      "brandCode": "CPT"
+    },
+    {
+      "id": "emp_06",
+      "name": "อภิสิทธิ์ (เอฟ)",
+      "nickname": "F",
+      "active": true,
+      "avatarColor": "#059669",
+      "avatarUrl": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80",
+      "brand": "Dulux",
+      "brandCode": "DLX"
+    },
+    {
+      "id": "emp_07",
+      "name": "ธนพร (จี)",
+      "nickname": "G",
+      "active": true,
+      "avatarColor": "#65a30d",
+      "avatarUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80",
+      "brand": "Nippon Paint",
+      "brandCode": "NPT"
+    },
+    {
+      "id": "emp_08",
+      "name": "นพดล (เอช)",
+      "nickname": "H",
+      "active": true,
+      "avatarColor": "#d97706",
+      "avatarUrl": "https://images.unsplash.com/photo-1563460716037-460b3dd14abb?w=300&auto=format&fit=crop&q=80",
+      "brand": "TOA",
+      "brandCode": "TOA"
+    },
+    {
+      "id": "emp_09",
+      "name": "สุภาภรณ์ (ไอ)",
+      "nickname": "I",
+      "active": true,
+      "avatarColor": "#dc2626",
+      "avatarUrl": "https://images.unsplash.com/photo-1527526029430-319f10814151?w=300&auto=format&fit=crop&q=80",
+      "brand": "JBP",
+      "brandCode": "JBP"
+    },
+    {
+      "id": "emp_10",
+      "name": "วิรัช (เจ)",
+      "nickname": "J",
+      "active": true,
+      "avatarColor": "#7c3aed",
+      "avatarUrl": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80",
+      "brand": "Pamapale",
+      "brandCode": "PMP"
+    }
+  ],
+  "leftQueue": [
+    {
+      "id": "q_1790004041199_a97q",
+      "employeeId": "emp_05",
+      "employeeName": "ภัทรพล (อี)",
+      "side": "LEFT",
+      "status": "NEXT",
+      "enteredAt": "2026-09-21T15:20:41.199Z",
+      "employeeAvatarUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80",
+      "employeeNickname": "E",
+      "employeeAvatarColor": "#16a34a",
+      "employeeBrand": "Captain",
+      "employeeBrandCode": "CPT"
+    },
+    {
+      "id": "q_1790004143260_r5iq",
+      "employeeId": "emp_06",
+      "employeeName": "อภิสิทธิ์ (เอฟ)",
+      "side": "LEFT",
+      "status": "SERVING",
+      "enteredAt": "2026-09-21T15:22:23.260Z",
+      "employeeAvatarUrl": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80",
+      "employeeNickname": "F",
+      "employeeAvatarColor": "#059669",
+      "servedAt": "2026-09-21T15:26:57.145Z",
+      "servingMachineId": "PC_LEFT",
+      "employeeBrand": "Dulux",
+      "employeeBrandCode": "DLX"
+    },
+    {
+      "id": "q_1790004203264_zyli",
+      "employeeId": "emp_07",
+      "employeeName": "ธนพร (จี)",
+      "side": "LEFT",
+      "status": "SERVING",
+      "enteredAt": "2026-09-21T15:23:23.264Z",
+      "employeeAvatarUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80",
+      "employeeNickname": "G",
+      "employeeAvatarColor": "#65a30d",
+      "servedAt": "2026-09-21T15:27:05.352Z",
+      "servingMachineId": "PC_LEFT",
+      "employeeBrand": "Nippon Paint",
+      "employeeBrandCode": "NPT"
+    },
+    {
+      "id": "q_1790005573728_j7fz",
+      "employeeId": "emp_08",
+      "employeeName": "นพดล (เอช)",
+      "employeeNickname": "H",
+      "employeeBrand": "TOA",
+      "employeeBrandCode": "TOA",
+      "employeeAvatarUrl": "https://images.unsplash.com/photo-1563460716037-460b3dd14abb?w=300&auto=format&fit=crop&q=80",
+      "employeeAvatarColor": "#d97706",
+      "side": "LEFT",
+      "status": "WAITING",
+      "enteredAt": "2026-09-21T15:46:13.728Z"
+    },
+    {
+      "id": "q_1790005580604_mzoc",
+      "employeeId": "emp_09",
+      "employeeName": "สุภาภรณ์ (ไอ)",
+      "employeeNickname": "I",
+      "employeeBrand": "JBP",
+      "employeeBrandCode": "JBP",
+      "employeeAvatarUrl": "https://images.unsplash.com/photo-1527526029430-319f10814151?w=300&auto=format&fit=crop&q=80",
+      "employeeAvatarColor": "#dc2626",
+      "side": "LEFT",
+      "status": "WAITING",
+      "enteredAt": "2026-09-21T15:46:20.604Z"
+    }
+  ],
+  "rightQueue": [
+    {
+      "id": "q_1790003235478",
+      "employeeId": "emp_02",
+      "employeeName": "สมศักดิ์ (บี)",
+      "side": "RIGHT",
+      "status": "SERVING",
+      "enteredAt": "2026-09-21T15:07:15.478Z",
+      "employeeAvatarUrl": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=300&auto=format&fit=crop&q=80",
+      "employeeNickname": "B",
+      "employeeAvatarColor": "#0284c7",
+      "servedAt": "2026-09-21T15:34:31.848Z",
+      "servingMachineId": "PC_LEFT",
+      "employeeBrand": "TOA",
+      "employeeBrandCode": "TOA"
+    },
+    {
+      "id": "q_1790003265478",
+      "employeeId": "emp_03",
+      "employeeName": "วนิดา (ซี)",
+      "side": "RIGHT",
+      "status": "SERVING",
+      "enteredAt": "2026-09-21T15:07:45.478Z",
+      "employeeAvatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
+      "employeeNickname": "C",
+      "employeeAvatarColor": "#0891b2",
+      "servedAt": "2026-09-21T15:34:35.961Z",
+      "servingMachineId": "PC_LEFT",
+      "employeeBrand": "JBP",
+      "employeeBrandCode": "JBP"
+    },
+    {
+      "id": "q_1790003683031_21ye",
+      "employeeId": "emp_01",
+      "employeeName": "สมชาย (เอ)",
+      "side": "RIGHT",
+      "status": "NEXT",
+      "enteredAt": "2026-09-21T15:14:43.031Z",
+      "employeeAvatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80",
+      "employeeNickname": "A",
+      "employeeAvatarColor": "#2563eb",
+      "employeeBrand": "Nippon Paint",
+      "employeeBrandCode": "NPT"
+    }
+  ],
+  "lastSwitch": {
+    "switchedAt": "2026-09-21T15:15:02.728Z",
+    "machineId": "PC_LEFT",
+    "leftCountBefore": 4,
+    "rightCountBefore": 3
+  },
+  "lastSwitchUndoSnapshot": {
+    "leftQueue": [
+      {
+        "id": "q_1790003235478",
+        "employeeId": "emp_02",
+        "employeeName": "สมศักดิ์ (บี)",
+        "side": "LEFT",
+        "status": "NEXT",
+        "enteredAt": "2026-09-21T15:07:15.478Z"
+      },
+      {
+        "id": "q_1790003265478",
+        "employeeId": "emp_03",
+        "employeeName": "วนิดา (ซี)",
+        "side": "LEFT",
+        "status": "WAITING",
+        "enteredAt": "2026-09-21T15:07:45.478Z"
+      },
+      {
+        "id": "q_1790003295478",
+        "employeeId": "emp_04",
+        "employeeName": "กิตติพงษ์ (ดี)",
+        "side": "LEFT",
+        "status": "WAITING",
+        "enteredAt": "2026-09-21T15:08:15.478Z"
+      },
+      {
+        "id": "q_1790003683031_21ye",
+        "employeeId": "emp_01",
+        "employeeName": "สมชาย (เอ)",
+        "side": "LEFT",
+        "status": "WAITING",
+        "enteredAt": "2026-09-21T15:14:43.031Z"
+      }
+    ],
+    "rightQueue": [
+      {
+        "id": "q_1790003215478",
+        "employeeId": "emp_05",
+        "employeeName": "ภัทรพล (อี)",
+        "side": "RIGHT",
+        "status": "NEXT",
+        "enteredAt": "2026-09-21T15:06:55.478Z"
+      },
+      {
+        "id": "q_1790003245478",
+        "employeeId": "emp_06",
+        "employeeName": "อภิสิทธิ์ (เอฟ)",
+        "side": "RIGHT",
+        "status": "WAITING",
+        "enteredAt": "2026-09-21T15:07:25.478Z"
+      },
+      {
+        "id": "q_1790003275478",
+        "employeeId": "emp_07",
+        "employeeName": "ธนพร (จี)",
+        "side": "RIGHT",
+        "status": "WAITING",
+        "enteredAt": "2026-09-21T15:07:55.478Z"
+      }
+    ],
+    "timestamp": "2026-09-21T15:15:02.728Z"
+  },
+  "auditLogs": [
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_01",
+      "employeeName": "สมชาย (เอ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 3 นาที 20 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_comp_01_today",
+      "timestamp": "2026-09-21T16:04:10.000Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_01",
+      "employeeName": "สมชาย (เอ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 2 นาที 45 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_comp_02_today",
+      "timestamp": "2026-09-21T15:58:15.000Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_01",
+      "employeeName": "สมชาย (เอ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 4 นาที 10 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_comp_03_today",
+      "timestamp": "2026-09-21T15:40:00.000Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_02",
+      "employeeName": "สมศักดิ์ (บี)",
+      "side": "RIGHT",
+      "machineId": "PC_RIGHT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 3 นาที 15 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_comp_04_today",
+      "timestamp": "2026-09-21T16:02:30.000Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_02",
+      "employeeName": "สมศักดิ์ (บี)",
+      "side": "RIGHT",
+      "machineId": "PC_RIGHT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 2 นาที 50 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_comp_05_today",
+      "timestamp": "2026-09-21T15:48:10.000Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_03",
+      "employeeName": "วนิดา (ซี)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 3 นาที 05 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_comp_06_today",
+      "timestamp": "2026-09-21T15:52:00.000Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_03",
+      "employeeName": "วนิดา (ซี)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 2 นาที 30 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_comp_07_today",
+      "timestamp": "2026-09-21T15:38:00.000Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_04",
+      "employeeName": "กิตติพงษ์ (ดี)",
+      "side": "RIGHT",
+      "machineId": "PC_RIGHT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 4 นาที 00 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_comp_08_today",
+      "timestamp": "2026-09-21T15:42:00.000Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_07",
+      "employeeName": "ธนพร (จี)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 3 นาที 10 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_comp_09_today",
+      "timestamp": "2026-09-21T15:55:00.000Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_08",
+      "employeeName": "นพดล (เอช)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 2 นาที 15 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_comp_10_today",
+      "timestamp": "2026-09-21T15:50:00.000Z"
+    },
+    {
+      "action": "REMOVE_QUEUE",
+      "employeeId": "emp_04",
+      "employeeName": "กิตติพงษ์ (ดี)",
+      "side": "RIGHT",
+      "machineId": "PC_RIGHT",
+      "reason": "ลงคิวผิด",
+      "details": "นำออกจากคิวฝั่ง RIGHT (เหตุผล: ลงคิวผิด)",
+      "id": "log_1790006740188_zucq",
+      "timestamp": "2026-09-21T16:05:40.188Z"
+    },
+    {
+      "action": "ENQUEUE",
+      "employeeId": "emp_09",
+      "employeeName": "สุภาภรณ์ (ไอ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "ลงคิวฝั่ง LEFT สำเร็จ",
+      "id": "log_1790005580604_kc4h",
+      "timestamp": "2026-09-21T15:46:20.604Z"
+    },
+    {
+      "action": "ENQUEUE",
+      "employeeId": "emp_08",
+      "employeeName": "นพดล (เอช)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "ลงคิวฝั่ง LEFT สำเร็จ",
+      "id": "log_1790005573728_fo1l",
+      "timestamp": "2026-09-21T15:46:13.728Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_03",
+      "employeeName": "วนิดา (ซี)",
+      "side": "RIGHT",
+      "machineId": "PC_LEFT",
+      "details": "🔥 ขึ้นคิวบริการลูกค้า (ฝั่ง RIGHT)",
+      "id": "log_1790004875961_lfml",
+      "timestamp": "2026-09-21T15:34:35.961Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_02",
+      "employeeName": "สมศักดิ์ (บี)",
+      "side": "RIGHT",
+      "machineId": "PC_LEFT",
+      "details": "🔥 ขึ้นคิวบริการลูกค้า (ฝั่ง RIGHT)",
+      "id": "log_1790004871848_732k",
+      "timestamp": "2026-09-21T15:34:31.848Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_07",
+      "employeeName": "ธนพร (จี)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "🔥 ขึ้นคิวบริการลูกค้า (ฝั่ง LEFT)",
+      "id": "log_1790004425352_d6q3",
+      "timestamp": "2026-09-21T15:27:05.352Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_06",
+      "employeeName": "อภิสิทธิ์ (เอฟ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "🔥 ขึ้นคิวบริการลูกค้า (ฝั่ง LEFT)",
+      "id": "log_1790004417145_xmkb",
+      "timestamp": "2026-09-21T15:26:57.145Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_07",
+      "employeeName": "ธนพร (จี)",
+      "side": "LEFT",
+      "machineId": "PC_RIGHT",
+      "details": "จบลูกค้าเรียบร้อย (ใช้เวลา 0 นาที 1 วินาที) -> กลับไปต่อท้ายคิว",
+      "id": "log_1790004203264_skes",
+      "timestamp": "2026-09-21T15:23:23.264Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_07",
+      "employeeName": "ธนพร (จี)",
+      "side": "LEFT",
+      "machineId": "PC_RIGHT",
+      "details": "เริ่มบริการลูกค้า (ฝั่ง LEFT)",
+      "id": "log_1790004201901_4loe",
+      "timestamp": "2026-09-21T15:23:21.901Z"
+    },
+    {
+      "action": "ENQUEUE",
+      "employeeId": "emp_06",
+      "employeeName": "อภิสิทธิ์ (เอฟ)",
+      "side": "LEFT",
+      "machineId": "PC_RIGHT",
+      "details": "ลงคิวฝั่ง LEFT สำเร็จ",
+      "id": "log_1790004143260_itiz",
+      "timestamp": "2026-09-21T15:22:23.260Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_05",
+      "employeeName": "ภัทรพล (อี)",
+      "side": "LEFT",
+      "machineId": "PC_RIGHT",
+      "details": "จบลูกค้าเรียบร้อย (ใช้เวลา 0 นาที 4 วินาที) -> กลับไปต่อท้ายคิว",
+      "id": "log_1790004041199_f7kt",
+      "timestamp": "2026-09-21T15:20:41.199Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_05",
+      "employeeName": "ภัทรพล (อี)",
+      "side": "LEFT",
+      "machineId": "PC_RIGHT",
+      "details": "เริ่มบริการลูกค้า (ฝั่ง LEFT)",
+      "id": "log_1790004036925_cvv1",
+      "timestamp": "2026-09-21T15:20:36.925Z"
+    },
+    {
+      "action": "REMOVE_QUEUE",
+      "employeeId": "emp_06",
+      "employeeName": "อภิสิทธิ์ (เอฟ)",
+      "side": "LEFT",
+      "machineId": "PC_RIGHT",
+      "reason": "ไปทำงานอื่น / ยกของ",
+      "details": "นำออกจากคิวฝั่ง LEFT (เหตุผล: ไปทำงานอื่น / ยกของ)",
+      "id": "log_1790004029736_zr0q",
+      "timestamp": "2026-09-21T15:20:29.736Z"
+    },
+    {
+      "action": "SWITCH_SIDES",
+      "machineId": "PC_LEFT",
+      "details": "🔄 สลับฝั่งสำเร็จ: LEFT (4 คน) ↔ RIGHT (3 คน)",
+      "id": "log_1790003702728_7aml",
+      "timestamp": "2026-09-21T15:15:02.728Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_01",
+      "employeeName": "สมชาย (เอ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบลูกค้าเรียบร้อย (ใช้เวลา 0 นาที 6 วินาที) -> กลับไปต่อท้ายคิว",
+      "id": "log_1790003683031_v5zm",
+      "timestamp": "2026-09-21T15:14:43.031Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_01",
+      "employeeName": "สมชาย (เอ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "เริ่มบริการลูกค้า (ฝั่ง LEFT)",
+      "id": "log_1790003676775_vj43",
+      "timestamp": "2026-09-21T15:14:36.775Z"
+    },
+    {
+      "id": "log_init",
+      "timestamp": "2026-09-21T15:06:40.478Z",
+      "action": "SYSTEM_RESET",
+      "machineId": "PC_LEFT",
+      "details": "เริ่มต้นระบบ PAINT QUEUE แผนกสี"
+    }
+  ]
+}
