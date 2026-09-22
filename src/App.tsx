@@ -15,13 +15,11 @@ import { MoveQueueModal } from './components/MoveQueueModal';
 import { UnauthorizedScreen } from './components/UnauthorizedScreen';
 import { PairDeviceModal } from './components/PairDeviceModal';
 import { DeviceManagementModal } from './components/DeviceManagementModal';
-import { ThemeSelectModal } from './components/ThemeSelectModal';
 import {
   checkDeviceAuthStatus,
   fetchWithAuth,
   getStoredDeviceToken,
   clearStoredDeviceToken,
-  updateThemePreset,
   createBrandApi,
   updateBrandApi,
   deleteBrandApi,
@@ -40,7 +38,7 @@ import {
   Side,
   SideSwitchRecord,
 } from './types';
-import { DEFAULT_THEME_ID, THEME_PRESETS } from './constants';
+import { MAIN_THEME } from './constants';
 import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
 const MACHINE_SIDE_STORAGE_KEY = 'paint_queue_machine_side';
@@ -98,16 +96,9 @@ export default function App() {
   const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isHandledStatsOpen, setIsHandledStatsOpen] = useState(false);
-  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
-  // Theme Preset System State
-  const [activeThemeId, setActiveThemeId] = useState<string>(() => {
-    return localStorage.getItem('paint_queue_theme_id') || DEFAULT_THEME_ID;
-  });
-
-  const activeTheme = useMemo(() => {
-    return THEME_PRESETS.find((p) => p.id === activeThemeId) || THEME_PRESETS[0];
-  }, [activeThemeId]);
+  // Single Standard Theme Configuration
+  const activeTheme = MAIN_THEME;
 
   // Notifications / Toasts
   const [toastMessage, setToastMessage] = useState<{
@@ -198,10 +189,6 @@ export default function App() {
         if (data.brands) {
           setBrands(data.brands);
         }
-        if (data.activeThemeId) {
-          setActiveThemeId(data.activeThemeId);
-          localStorage.setItem('paint_queue_theme_id', data.activeThemeId);
-        }
         if (data.employees) setEmployees(data.employees);
         setIsConnected(true);
       }
@@ -243,10 +230,6 @@ export default function App() {
           if (data.brands) {
             setBrands(data.brands);
           }
-          if (data.activeThemeId) {
-            setActiveThemeId(data.activeThemeId);
-            localStorage.setItem('paint_queue_theme_id', data.activeThemeId);
-          }
           if (data.employees) setEmployees(data.employees);
           setIsConnected(true);
         } catch (err) {
@@ -265,10 +248,6 @@ export default function App() {
           }
           if (data.brands) {
             setBrands(data.brands);
-          }
-          if (data.activeThemeId) {
-            setActiveThemeId(data.activeThemeId);
-            localStorage.setItem('paint_queue_theme_id', data.activeThemeId);
           }
           if (data.employees) setEmployees(data.employees);
           setIsConnected(true);
@@ -748,23 +727,10 @@ export default function App() {
       setLastSwitch(null);
       setCanUndoSwitch(false);
       setIsResetModalOpen(false);
-      showToast('⚠️ รีเซ็ตข้อมูลทั้งหมดสำเร็จ (ยกเว้นธีมคงเดิม)', 'success');
+      showToast('⚠️ รีเซ็ตข้อมูลระบบเริ่มต้นใหม่สำเร็จ', 'success');
     } catch (err: any) {
       showToast(err.message || 'รีเซ็ตข้อมูลทั้งหมดไม่สำเร็จ', 'error');
       throw err;
-    }
-  };
-
-  const handleSelectTheme = async (themeId: string) => {
-    try {
-      await updateThemePreset(themeId);
-      setActiveThemeId(themeId);
-      localStorage.setItem('paint_queue_theme_id', themeId);
-      const preset = THEME_PRESETS.find((p) => p.id === themeId);
-      showToast(`เปลี่ยนธีมเป็น "${preset?.name || themeId}" สำเร็จ!`, 'success');
-      setIsThemeModalOpen(false);
-    } catch (err: any) {
-      showToast(err.message || 'เปลี่ยนธีมไม่สำเร็จ', 'error');
     }
   };
 
@@ -815,7 +781,6 @@ export default function App() {
         onOpenEmployeeManager={() => setIsEmployeeMgrOpen(true)}
         onOpenBrandManager={() => setIsBrandModalOpen(true)}
         onOpenHandledStats={() => setIsHandledStatsOpen(true)}
-        onOpenThemeSelect={() => setIsThemeModalOpen(true)}
         onOpenReset={() => setIsResetModalOpen(true)}
         activeTheme={activeTheme}
         lastSwitch={lastSwitch}
@@ -847,7 +812,6 @@ export default function App() {
           machineSide={machineSide || 'LEFT'}
           activeTheme={activeTheme}
           themeSwapped={themeSwapped}
-          onOpenThemeSelect={() => setIsThemeModalOpen(true)}
           onOpenAddQueue={handleOpenAddQueue}
           onStartServe={handleStartServe}
           onCompleteServe={handleCompleteServe}
@@ -861,7 +825,7 @@ export default function App() {
 
       {/* Footer Info */}
       <footer className="border-t border-slate-900/80 bg-slate-950/80 backdrop-blur-md py-3 text-center text-[11px] text-slate-500">
-        PAINT QUEUE • ระบบจัดคิวพนักงานขายแผนกสี • ใครมาถึงก่อนได้คิวก่อน • ธีมปัจจุบัน: {activeTheme.name}
+        PAINT QUEUE • ระบบจัดคิวพนักงานขายแผนกสี • ใครมาถึงก่อนได้คิวก่อน
       </footer>
 
       {/* Toast Notification */}
@@ -1002,13 +966,6 @@ export default function App() {
         onClose={() => setIsDeviceManagementOpen(false)}
         device={authorizedDevice}
         onRevokedSuccess={handleRevokedSuccess}
-      />
-
-      <ThemeSelectModal
-        isOpen={isThemeModalOpen}
-        onClose={() => setIsThemeModalOpen(false)}
-        activeThemeId={activeThemeId}
-        onSelectTheme={handleSelectTheme}
       />
     </div>
   );

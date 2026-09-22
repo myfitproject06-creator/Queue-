@@ -17,8 +17,9 @@ import {
   Crop,
 } from 'lucide-react';
 import { BrandItem, Employee, MachineId } from '../types';
-import { DEFAULT_PAINT_BRANDS } from '../constants';
+import { DEFAULT_PAINT_BRANDS, getBrandVisual } from '../constants';
 import { ImageCropModal } from './ImageCropModal';
+import { uploadAvatarApi } from '../api';
 
 interface EmployeeManagerModalProps {
   isOpen: boolean;
@@ -150,6 +151,7 @@ export const EmployeeManagerModal: React.FC<EmployeeManagerModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [confirmDeleteEmpId, setConfirmDeleteEmpId] = useState<string | null>(null);
+  const [filterBrand, setFilterBrand] = useState<string>('ALL');
 
   // Crop modal state
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
@@ -174,6 +176,31 @@ export const EmployeeManagerModal: React.FC<EmployeeManagerModalProps> = ({
           color: b.color,
         }));
 
+  const processSelectedFile = (file: File, isEditMode = false) => {
+    const isImage = file.type
+      ? file.type.startsWith('image/')
+      : /\.(jpe?g|png|webp|gif|bmp|heic|svg)$/i.test(file.name);
+
+    if (!isImage) {
+      setErrorMsg('กรุณาเลือกไฟล์รูปภาพที่ถูกต้อง (JPG, PNG, WebP ฯลฯ)');
+      return;
+    }
+
+    setErrorMsg(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setCropSourceUrl(dataUrl);
+      setCropIsEditMode(isEditMode);
+      setCropTargetName(isEditMode ? (editName || 'พนักงาน') : (name || 'พนักงานใหม่'));
+      setIsCropModalOpen(true);
+    };
+    reader.onerror = () => {
+      setErrorMsg('ไม่สามารถอ่านไฟล์รูปภาพได้ กรุณาลองใหม่อีกครั้ง');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleFileUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
     isEditMode = false
@@ -181,24 +208,8 @@ export const EmployeeManagerModal: React.FC<EmployeeManagerModalProps> = ({
     const file = e.target.files?.[0];
     // Reset target value so re-selecting same file triggers change
     e.target.value = '';
-
     if (!file) return;
-
-    if (!file.type.match(/^image\//i)) {
-      setErrorMsg('กรุณาเลือกไฟล์รูปภาพที่ถูกต้อง (JPG, PNG, WebP)');
-      return;
-    }
-
-    try {
-      setErrorMsg(null);
-      const objectUrl = URL.createObjectURL(file);
-      setCropSourceUrl(objectUrl);
-      setCropIsEditMode(isEditMode);
-      setCropTargetName(isEditMode ? (editName || 'พนักงาน') : (name || 'พนักงานใหม่'));
-      setIsCropModalOpen(true);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'เกิดข้อผิดพลาดในการเปิดรูปภาพ');
-    }
+    processSelectedFile(file, isEditMode);
   };
 
   const handleOpenCropForExisting = (imageUrl: string, isEditMode: boolean) => {
@@ -210,26 +221,36 @@ export const EmployeeManagerModal: React.FC<EmployeeManagerModalProps> = ({
     setIsCropModalOpen(true);
   };
 
-  const handleConfirmCrop = (croppedDataUrl: string) => {
+  const handleConfirmCrop = async (croppedDataUrl: string) => {
+    setIsCropModalOpen(false);
+    setCropSourceUrl('');
+
+    // Optimistically update preview immediately for instant visual feedback
     if (cropIsEditMode) {
       setEditAvatarUrl(croppedDataUrl);
     } else {
       setSelectedAvatarUrl(croppedDataUrl);
       setAvatarPreview(croppedDataUrl);
     }
-    setIsCropModalOpen(false);
-    if (cropSourceUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(cropSourceUrl);
+
+    try {
+      // Upload cropped high-res image to server disk (/uploads/avatar_...jpg)
+      const serverAvatarUrl = await uploadAvatarApi(croppedDataUrl);
+      if (cropIsEditMode) {
+        setEditAvatarUrl(serverAvatarUrl);
+      } else {
+        setSelectedAvatarUrl(serverAvatarUrl);
+        setAvatarPreview(serverAvatarUrl);
+      }
+      setSuccessMsg('ปรับตำแหน่งและสัดส่วนรูปโปรไฟล์เรียบร้อยแล้ว พร้อมบันทึก');
+    } catch (err: any) {
+      console.warn('Could not persist avatar to disk, using data URL fallback:', err);
+      setSuccessMsg('ปรับสัดส่วนรูปโปรไฟล์เรียบร้อยแล้ว');
     }
-    setCropSourceUrl('');
-    setSuccessMsg('ปรับตำแหน่งและสัดส่วนรูปโปรไฟล์เรียบร้อยแล้ว');
   };
 
   const handleCloseCrop = () => {
     setIsCropModalOpen(false);
-    if (cropSourceUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(cropSourceUrl);
-    }
     setCropSourceUrl('');
   };
 
@@ -577,26 +598,39 @@ export const EmployeeManagerModal: React.FC<EmployeeManagerModalProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="p-3 bg-slate-950/50 rounded-xl border border-dashed border-slate-800 flex items-center justify-between gap-3 text-xs text-slate-400">
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) processSelectedFile(file, false);
+                  }}
+                  className="p-3 bg-slate-950/50 hover:bg-slate-950/80 rounded-xl border border-dashed border-slate-750 hover:border-cyan-500/60 transition flex items-center justify-between gap-3 text-xs text-slate-400"
+                >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-slate-850 flex items-center justify-center text-slate-500">
+                    <div className="w-10 h-10 rounded-xl bg-slate-850 flex items-center justify-center text-slate-400">
                       <Camera className="w-5 h-5" />
                     </div>
                     <div>
                       <span className="text-slate-300 font-medium block">
-                        ยังไม่ได้เลือกรูปโปรไฟล์
+                        ยังไม่ได้เลือกรูปโปรไฟล์ (คลิกหรือลากไฟล์มาวางที่นี่)
                       </span>
                       <span className="text-[11px] text-slate-500">
-                        (หากไม่เลือก ระบบจะสร้าง Avatar อักษรย่อให้โดยอัตโนมัติ)
+                        (เมื่อเลือกรูป จะมีหน้าต่างปรับสัดส่วน/ซูมจัดวางแบบ Facebook ให้ทันที)
                       </span>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => newFileInputRef.current?.click()}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition cursor-pointer"
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5 shadow-sm"
                   >
-                    อัปโหลดรูป
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>เลือกรูปภาพ</span>
                   </button>
                 </div>
               )}
@@ -623,9 +657,58 @@ export const EmployeeManagerModal: React.FC<EmployeeManagerModalProps> = ({
                 รายชื่อพนักงานทั้งหมด ({employees.length} คน)
               </h3>
               <span className="text-[11px] text-slate-400">
-                สามารถแก้ไขรูป ชื่อ สังกัด หรือลบพนักงานได้ที่นี่
+                แถบสีขอบซ้ายช่วยแยกสังกัดแบรนด์ได้อย่างชัดเจน
               </span>
             </div>
+
+            {/* Quick Brand Filter Tabs for Employee List */}
+            {employees.length > 0 && (() => {
+              const brandMap = new Map<string, { brand: string; count: number; color: string }>();
+              employees.forEach((emp) => {
+                const visual = getBrandVisual(emp.brand, emp.brandCode);
+                const key = visual.brandCode || visual.brand;
+                const existing = brandMap.get(key);
+                if (existing) {
+                  existing.count += 1;
+                } else {
+                  brandMap.set(key, { brand: visual.brand, count: 1, color: visual.color });
+                }
+              });
+              const groups = Array.from(brandMap.entries()).map(([code, data]) => ({ code, ...data }));
+              if (groups.length <= 1) return null;
+
+              return (
+                <div className="mb-3 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+                  <button
+                    type="button"
+                    onClick={() => setFilterBrand('ALL')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer ${
+                      filterBrand === 'ALL'
+                        ? 'bg-white text-slate-900 shadow-md font-black'
+                        : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                    }`}
+                  >
+                    <span>ทั้งหมด ({employees.length})</span>
+                  </button>
+                  {groups.map((g) => (
+                    <button
+                      key={g.code}
+                      type="button"
+                      onClick={() => setFilterBrand(g.code)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0 border cursor-pointer ${
+                        filterBrand === g.code
+                          ? 'bg-slate-800 text-white border-white/60 shadow ring-1 ring-white/40'
+                          : 'bg-slate-950/70 text-slate-300 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: g.color }} />
+                      <span>{g.code}</span>
+                      <span className="text-[10px] opacity-75">({g.count})</span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
 
             {employees.length === 0 ? (
               <div className="p-8 text-center bg-slate-950/60 rounded-2xl border border-slate-800 text-slate-400 text-xs">
@@ -633,12 +716,22 @@ export const EmployeeManagerModal: React.FC<EmployeeManagerModalProps> = ({
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {employees.map((emp) => {
+                {employees
+                  .filter((emp) => {
+                    if (filterBrand === 'ALL') return true;
+                    const visual = getBrandVisual(emp.brand, emp.brandCode);
+                    return (visual.brandCode || visual.brand) === filterBrand;
+                  })
+                  .map((emp) => {
                   const isEditing = editingEmpId === emp.id;
+                  const brandVisual = getBrandVisual(emp.brand, emp.brandCode);
 
                   return (
                     <div
                       key={emp.id}
+                      style={{
+                        borderLeft: `6px solid ${brandVisual.color}`,
+                      }}
                       className={`p-3.5 rounded-2xl border transition-all ${
                         isEditing
                           ? 'bg-slate-850 border-amber-500 ring-2 ring-amber-500/30 shadow-lg col-span-1 sm:col-span-2'
@@ -654,15 +747,19 @@ export const EmployeeManagerModal: React.FC<EmployeeManagerModalProps> = ({
                               <img
                                 src={emp.avatarUrl}
                                 alt={emp.name}
-                                className="w-12 h-12 rounded-2xl object-cover border border-slate-700 shadow flex-shrink-0"
+                                style={{ borderColor: brandVisual.color }}
+                                className="w-12 h-12 rounded-2xl object-cover border-2 shadow flex-shrink-0"
                                 onError={(e) => {
                                   (e.target as HTMLElement).style.display = 'none';
                                 }}
                               />
                             ) : (
                               <div
-                                className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white text-base shadow flex-shrink-0"
-                                style={{ backgroundColor: emp.avatarColor || '#3b82f6' }}
+                                className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white text-base shadow flex-shrink-0 border-2"
+                                style={{
+                                  backgroundColor: emp.avatarColor || brandVisual.color,
+                                  borderColor: brandVisual.color,
+                                }}
                               >
                                 {emp.nickname || emp.name.charAt(0)}
                               </div>
@@ -673,11 +770,15 @@ export const EmployeeManagerModal: React.FC<EmployeeManagerModalProps> = ({
                                 <span className="text-sm font-black text-white truncate">
                                   {emp.name}
                                 </span>
-                                {emp.brandCode && (
-                                  <span className="text-[10px] font-mono font-bold bg-rose-950/80 text-rose-300 border border-rose-500/40 px-1.5 py-0.2 rounded">
-                                    {emp.brandCode}
-                                  </span>
-                                )}
+
+                                {/* Bold High-Visibility Brand Badge */}
+                                <span
+                                  className={`text-[11px] font-mono font-black ${brandVisual.badgeBg} ${brandVisual.badgeText} px-2 py-0.5 rounded-md shadow-sm border border-white/20 flex items-center gap-1 flex-shrink-0`}
+                                  title={`สังกัด: ${brandVisual.brand}`}
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0"></span>
+                                  <span>{brandVisual.brandCode || brandVisual.brand}</span>
+                                </span>
                               </div>
                               <div className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5 flex-wrap">
                                 {emp.nickname && (
@@ -686,7 +787,7 @@ export const EmployeeManagerModal: React.FC<EmployeeManagerModalProps> = ({
                                   </span>
                                 )}
                                 {emp.brand && (
-                                  <span className="text-[11px] text-slate-300">
+                                  <span className="text-[11px] text-slate-300 font-medium">
                                     สังกัด: {emp.brand}
                                   </span>
                                 )}
@@ -770,8 +871,20 @@ export const EmployeeManagerModal: React.FC<EmployeeManagerModalProps> = ({
                             </button>
                           </div>
 
-                          {/* Avatar Edit with Live Preview */}
-                          <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                          {/* Avatar Edit with Live Preview & Drag-and-Drop */}
+                          <div
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const file = e.dataTransfer.files?.[0];
+                              if (file) processSelectedFile(file, true);
+                            }}
+                            className="p-3 bg-slate-900/90 hover:bg-slate-900 rounded-xl border border-dashed border-slate-750 hover:border-cyan-500/50 transition flex items-center justify-between gap-3 flex-wrap"
+                          >
                             <div className="flex items-center gap-3">
                               {editAvatarUrl ? (
                                 <img
@@ -924,6 +1037,15 @@ export const EmployeeManagerModal: React.FC<EmployeeManagerModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Facebook-style Image Crop & Reposition Modal */}
+      <ImageCropModal
+        isOpen={isCropModalOpen}
+        imageSrc={cropSourceUrl}
+        employeeName={cropTargetName}
+        onClose={handleCloseCrop}
+        onConfirmCrop={handleConfirmCrop}
+      />
     </div>
   );
 };

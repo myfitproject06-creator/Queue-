@@ -670,32 +670,6 @@ async function startServer() {
     });
   });
 
-  // API: Set Active Theme Preset (Real-time synchronization across all devices)
-  app.post('/api/theme/set', requireDeviceAuth, (req: Request, res: Response) => {
-    const { themeId } = req.body as { themeId?: string };
-    if (!themeId) {
-      res.status(400).json({ error: 'กรุณาระบุ Theme ID' });
-      return;
-    }
-
-    db.activeThemeId = themeId;
-    const device = (req as any).authorizedDevice as StoredDeviceRecord | undefined;
-    addAuditLog({
-      action: 'SYSTEM_RESET',
-      machineId: device?.side === 'RIGHT' ? 'PC_RIGHT' : 'PC_LEFT',
-      details: `🎨 เปลี่ยนธีมระบบเป็น "${themeId}" โดยเครื่อง ${device?.deviceId || 'PC'}`,
-    });
-
-    saveDatabase();
-    broadcastQueueState();
-
-    res.json({
-      success: true,
-      activeThemeId: db.activeThemeId,
-      message: `เปลี่ยนธีมระบบเป็น ${themeId} เรียบร้อยแล้ว`,
-    });
-  });
-
   // API: Manual Daily Queue Reset (Requires Device Auth)
   app.post('/api/queue/reset-daily', requireDeviceAuth, (req: Request, res: Response) => {
     const todayStr = getBangkokDateString();
@@ -1733,8 +1707,8 @@ async function startServer() {
     res.json({ success: true, message: 'รีเซ็ตข้อมูลทั้งหมดยกเว้นธีมสำเร็จ' });
   });
 
-  // API: Upload Avatar
-  app.post('/api/upload-avatar', requireDeviceAuth, (req: Request, res: Response) => {
+  // API: Upload Avatar (Accepts Base64 image, compresses and saves to static /uploads directory)
+  app.post('/api/upload-avatar', (req: Request, res: Response) => {
     const { imageBase64 } = req.body as { imageBase64: string };
     if (!imageBase64 || typeof imageBase64 !== 'string') {
       res.status(400).json({ error: 'กรุณาอัปโหลดรูปภาพ' });

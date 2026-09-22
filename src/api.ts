@@ -98,25 +98,6 @@ export async function revokeDevice(deviceId: string, pairingCode: string): Promi
   return data;
 }
 
-export async function updateThemePreset(themeId: string): Promise<{
-  success: boolean;
-  activeThemeId: string;
-  message: string;
-}> {
-  const res = await fetchWithAuth('/api/theme/set', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ themeId }),
-  });
-
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'เปลี่ยนธีมไม่สำเร็จ');
-  }
-
-  return data;
-}
-
 export async function resetQueueOnly(): Promise<{ success: boolean; message: string }> {
   const res = await fetchWithAuth('/api/queue/reset-queue', {
     method: 'POST',
@@ -199,6 +180,26 @@ export async function returnQueueApi(
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'คืนคิวไม่สำเร็จ');
   return data;
+}
+
+export async function uploadAvatarApi(imageBase64: string): Promise<string> {
+  try {
+    const res = await fetchWithAuth('/api/upload-avatar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64 }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.avatarUrl) {
+        return data.avatarUrl;
+      }
+    }
+  } catch (err) {
+    console.warn('Upload avatar to disk failed, falling back to data URL:', err);
+  }
+  // Return original data URL as reliable fallback
+  return imageBase64;
 }
 
 

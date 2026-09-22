@@ -9,9 +9,12 @@ import {
   Check,
   X,
   RefreshCw,
-  Sparkles,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Eye,
-  Sliders,
+  Sparkles,
 } from 'lucide-react';
 
 interface ImageCropModalProps {
@@ -22,7 +25,7 @@ interface ImageCropModalProps {
   onConfirmCrop: (croppedDataUrl: string) => void;
 }
 
-const VIEWPORT_SIZE = 280; // Square viewport dimension in px
+const VIEWPORT_SIZE = 300; // Viewport dimension in px
 const OUTPUT_SIZE = 400; // Final crisp export dimension in px
 
 export const ImageCropModal: React.FC<ImageCropModalProps> = ({
@@ -33,6 +36,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
   onConfirmCrop,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const [imageObj, setImageObj] = useState<HTMLImageElement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -42,7 +46,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
   const [rotation, setRotation] = useState<number>(0); // 0, 90, 180, 270
   const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [previewShape, setPreviewShape] = useState<'rounded' | 'circle'>('rounded');
+  const [previewShape, setPreviewShape] = useState<'circle' | 'rounded'>('circle');
 
   // Drag interaction tracking
   const dragStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -72,7 +76,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
       setIsLoading(false);
     };
     img.onerror = () => {
-      setLoadError('ไม่สามารถโหลดรูปภาพได้ กรุณาลองใหม่อีกครั้ง');
+      setLoadError('ไม่สามารถโหลดรูปภาพได้ กรุณาเลือกไฟล์ภาพที่ถูกต้อง');
       setIsLoading(false);
     };
     img.src = imageSrc;
@@ -125,7 +129,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, VIEWPORT_SIZE, VIEWPORT_SIZE);
 
-    // Dark background behind image
+    // Deep slate background behind image
     ctx.fillStyle = '#090d16';
     ctx.fillRect(0, 0, VIEWPORT_SIZE, VIEWPORT_SIZE);
 
@@ -143,12 +147,11 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
     ctx.drawImage(imageObj, -baseW / 2, -baseH / 2, baseW, baseH);
     ctx.restore();
 
-    // Draw framing overlay & rule-of-thirds guide
-    ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)'; // cyan
+    // Draw subtle framing guidelines (Rule of thirds)
+    ctx.strokeStyle = 'rgba(6, 182, 212, 0.35)'; // cyan
     ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
+    ctx.setLineDash([3, 4]);
 
-    // Rule of thirds
     const third = VIEWPORT_SIZE / 3;
     ctx.beginPath();
     ctx.moveTo(third, 0);
@@ -161,14 +164,42 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
     ctx.lineTo(VIEWPORT_SIZE, third * 2);
     ctx.stroke();
 
-    // Center focal dot
+    // Center focal crosshair dot
     ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.7)'; // amber
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.8)'; // amber
     ctx.beginPath();
-    ctx.arc(VIEWPORT_SIZE / 2, VIEWPORT_SIZE / 2, 3, 0, Math.PI * 2);
+    ctx.arc(VIEWPORT_SIZE / 2, VIEWPORT_SIZE / 2, 3.5, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
+
+    // Update live mini preview
+    const previewCanvas = previewCanvasRef.current;
+    if (previewCanvas) {
+      const pCtx = previewCanvas.getContext('2d');
+      if (pCtx) {
+        const pSize = 72;
+        previewCanvas.width = pSize * dpr;
+        previewCanvas.height = pSize * dpr;
+        previewCanvas.style.width = `${pSize}px`;
+        previewCanvas.style.height = `${pSize}px`;
+
+        pCtx.save();
+        pCtx.scale(dpr, dpr);
+        pCtx.clearRect(0, 0, pSize, pSize);
+        pCtx.fillStyle = '#0f172a';
+        pCtx.fillRect(0, 0, pSize, pSize);
+
+        const pScale = pSize / VIEWPORT_SIZE;
+        pCtx.translate(pSize / 2 + offset.x * pScale, pSize / 2 + offset.y * pScale);
+        pCtx.rotate((rotation * Math.PI) / 180);
+        pCtx.scale(zoom * pScale, zoom * pScale);
+        pCtx.imageSmoothingEnabled = true;
+        pCtx.imageSmoothingQuality = 'high';
+        pCtx.drawImage(imageObj, -baseW / 2, -baseH / 2, baseW, baseH);
+        pCtx.restore();
+      }
+    }
   }, [imageObj, zoom, rotation, offset, calculateBaseDimensions]);
 
   useEffect(() => {
@@ -206,7 +237,6 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
       };
       initialTouchDist.current = null;
     } else if (e.touches.length === 2) {
-      // Pinch to zoom
       setIsDragging(false);
       const t1 = e.touches[0];
       const t2 = e.touches[1];
@@ -229,7 +259,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
       const t2 = e.touches[1];
       const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
       const ratio = dist / initialTouchDist.current;
-      const newZoom = Math.max(1, Math.min(3.5, initialTouchZoom.current * ratio));
+      const newZoom = Math.max(1, Math.min(4, +(initialTouchZoom.current * ratio).toFixed(2)));
       setZoom(newZoom);
     }
   };
@@ -243,7 +273,12 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const delta = -e.deltaY * 0.0015;
-    setZoom((prev) => Math.max(1, Math.min(3.5, prev + delta)));
+    setZoom((prev) => Math.max(1, Math.min(4, +(prev + delta).toFixed(2))));
+  };
+
+  // Nudge pan helpers
+  const handleNudge = (dx: number, dy: number) => {
+    setOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
   };
 
   // Rotate handlers
@@ -262,7 +297,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
     setOffset({ x: 0, y: 0 });
   };
 
-  // Export cropped high-res image
+  // Export cropped high-res image (400x400 crisp JPG)
   const handleConfirm = () => {
     if (!imageObj) return;
 
@@ -286,8 +321,8 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 
       // Translate, rotate, scale
       ctx.translate(
-        (OUTPUT_SIZE / 2) + offset.x * scaleFactor,
-        (OUTPUT_SIZE / 2) + offset.y * scaleFactor
+        OUTPUT_SIZE / 2 + offset.x * scaleFactor,
+        OUTPUT_SIZE / 2 + offset.y * scaleFactor
       );
       ctx.rotate((rotation * Math.PI) / 180);
       ctx.scale(zoom * scaleFactor, zoom * scaleFactor);
@@ -305,33 +340,38 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div
+      id="image-crop-modal-overlay"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={onClose}
+    >
       <div
         id="image-crop-modal-container"
-        className="relative w-full max-w-lg bg-slate-900 border border-cyan-500/40 rounded-3xl shadow-2xl shadow-cyan-950/50 overflow-hidden flex flex-col text-slate-100 max-h-[95vh]"
+        className="relative w-full max-w-xl bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col text-slate-100 max-h-[95vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 bg-slate-950/70 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-cyan-950/80 border border-cyan-500/50 text-cyan-400">
+            <div className="w-10 h-10 rounded-2xl bg-cyan-950/90 border border-cyan-500/50 text-cyan-400 flex items-center justify-center shadow-inner">
               <Crop className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-black text-base sm:text-lg text-white flex items-center gap-2">
-                <span>ปรับการวางสัดส่วนรูปภาพ</span>
-                <span className="text-[11px] font-bold text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded-full border border-cyan-500/40">
-                  สัดส่วน 1:1
+                <span>ปรับสัดส่วนรูปโปรไฟล์</span>
+                <span className="text-[11px] font-bold text-cyan-300 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
+                  สไตล์ Facebook 1:1
                 </span>
               </h3>
               <p className="text-xs text-slate-400">
-                ลากเลื่อนตำแหน่งและซูมปรับใบหน้าให้ชัดเจนก่อนกดตกลง ({employeeName})
+                ลากเลื่อนตำแหน่งและซูมจัดวางใบหน้าของ <span className="text-cyan-300 font-bold">{employeeName}</span> ให้สวยงาม
               </p>
             </div>
           </div>
 
           <button
             type="button"
+            id="btn-close-crop-modal"
             onClick={onClose}
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
           >
@@ -342,21 +382,60 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
         {/* Content Body */}
         <div className="p-4 sm:p-5 overflow-y-auto flex flex-col items-center gap-4">
           {isLoading ? (
-            <div className="w-full h-72 flex flex-col items-center justify-center gap-3 text-slate-400">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
-              <span className="text-sm">กำลังโหลดรูปภาพ...</span>
+            <div className="w-full h-80 flex flex-col items-center justify-center gap-3 text-slate-400">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-400"></div>
+              <span className="text-sm">กำลังเปิดและเตรียมรูปภาพ...</span>
             </div>
           ) : loadError ? (
-            <div className="w-full p-4 rounded-2xl bg-rose-950/60 border border-rose-500/50 text-rose-300 text-sm text-center">
-              {loadError}
+            <div className="w-full p-6 rounded-2xl bg-rose-950/60 border border-rose-500/50 text-rose-300 text-sm text-center space-y-2">
+              <p className="font-bold">{loadError}</p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-xl text-white cursor-pointer"
+              >
+                ปิดและลองเลือกไฟล์ใหม่
+              </button>
             </div>
           ) : (
             <>
+              {/* Top View Selector: Circle (Facebook Style) vs Rounded Card */}
+              <div className="flex items-center justify-between w-full max-w-sm px-1">
+                <span className="text-xs text-slate-400 font-semibold flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>โหมดกรอบพรีวิว:</span>
+                </span>
+                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewShape('circle')}
+                    className={`text-xs font-bold px-3 py-1 rounded-lg transition cursor-pointer ${
+                      previewShape === 'circle'
+                        ? 'bg-cyan-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    ⭕ วงกลม (Avatar)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewShape('rounded')}
+                    className={`text-xs font-bold px-3 py-1 rounded-lg transition cursor-pointer ${
+                      previewShape === 'rounded'
+                        ? 'bg-cyan-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    🔲 สี่เหลี่ยมมน (การ์ดคิว)
+                  </button>
+                </div>
+              </div>
+
               {/* Interactive Viewport Area */}
-              <div className="flex flex-col items-center">
+              <div className="relative flex flex-col items-center">
                 <div
                   id="crop-viewport-box"
-                  className="relative select-none touch-none rounded-2xl overflow-hidden shadow-2xl border-2 border-cyan-500/80 ring-4 ring-cyan-500/20 cursor-grab active:cursor-grabbing bg-slate-950"
+                  className="relative select-none touch-none rounded-3xl overflow-hidden shadow-2xl border-2 border-cyan-500/70 ring-4 ring-cyan-500/20 cursor-grab active:cursor-grabbing bg-slate-950"
                   style={{ width: VIEWPORT_SIZE, height: VIEWPORT_SIZE }}
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
@@ -369,58 +448,31 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
                 >
                   <canvas ref={canvasRef} className="block w-full h-full" />
 
-                  {/* Mask Overlay based on Preview Shape */}
+                  {/* Facebook-style Dimmed Mask Overlay */}
                   {previewShape === 'circle' ? (
-                    <div className="pointer-events-none absolute inset-0 rounded-full border-2 border-white/60 shadow-[0_0_0_9999px_rgba(15,23,42,0.6)]" />
+                    <div className="pointer-events-none absolute inset-0 rounded-full border-2 border-white/70 shadow-[0_0_0_9999px_rgba(3,7,18,0.72)] transition-all" />
                   ) : (
-                    <div className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-white/60 shadow-[0_0_0_9999px_rgba(15,23,42,0.55)]" />
+                    <div className="pointer-events-none absolute inset-0 rounded-3xl border-2 border-white/70 shadow-[0_0_0_9999px_rgba(3,7,18,0.68)] transition-all" />
                   )}
 
-                  {/* Drag Prompt Hint */}
-                  <div className="pointer-events-none absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-slate-900/80 backdrop-blur-sm border border-cyan-500/40 text-cyan-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow">
-                    <Move className="w-3 h-3 text-cyan-400" />
-                    <span>ลากเพื่อขยับตำแหน่ง</span>
+                  {/* Drag Prompt Hint Pill */}
+                  <div className="pointer-events-none absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-slate-950/85 backdrop-blur-md border border-cyan-400/40 text-cyan-200 text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg">
+                    <Move className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                    <span>คลิกลากเพื่อเลื่อนตำแหน่งรูป</span>
                   </div>
-                </div>
-
-                {/* Guide shape toggle */}
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-[11px] text-slate-400">กรอบแสดงผล:</span>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewShape('rounded')}
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition ${
-                      previewShape === 'rounded'
-                        ? 'bg-cyan-950 text-cyan-300 border-cyan-500'
-                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
-                    }`}
-                  >
-                    ขอบมน (การ์ดคิว)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewShape('circle')}
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition ${
-                      previewShape === 'circle'
-                        ? 'bg-cyan-950 text-cyan-300 border-cyan-500'
-                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
-                    }`}
-                  >
-                    วงกลม
-                  </button>
                 </div>
               </div>
 
-              {/* Transformation Controls */}
-              <div className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 space-y-3 shadow-inner">
-                {/* Zoom Control */}
+              {/* Transformation Controls Bar */}
+              <div className="w-full bg-slate-950/90 border border-slate-800 rounded-2xl p-4 space-y-3.5 shadow-inner">
+                {/* Zoom Control Slider */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                      <ZoomIn className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>ซูมย่อ-ขยาย:</span>
+                      <ZoomIn className="w-4 h-4 text-cyan-400" />
+                      <span>ซูม ย่อ-ขยาย:</span>
                     </span>
-                    <span className="font-mono font-bold text-cyan-300 text-xs">
+                    <span className="font-mono font-bold text-cyan-300 text-xs bg-cyan-950/80 px-2 py-0.5 rounded-md border border-cyan-500/30">
                       {zoom.toFixed(1)}x
                     </span>
                   </div>
@@ -429,40 +481,80 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setZoom((z) => Math.max(1, +(z - 0.2).toFixed(1)))}
-                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                      className="p-2 rounded-xl bg-slate-850 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700/60 transition cursor-pointer"
                       title="ซูมออก"
                     >
-                      <ZoomOut className="w-3.5 h-3.5" />
+                      <ZoomOut className="w-4 h-4" />
                     </button>
 
                     <input
                       type="range"
                       min="1"
-                      max="3.5"
+                      max="4"
                       step="0.05"
                       value={zoom}
                       onChange={(e) => setZoom(parseFloat(e.target.value))}
-                      className="flex-1 accent-cyan-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                      className="flex-1 accent-cyan-400 h-2 bg-slate-800 rounded-lg cursor-pointer"
                     />
 
                     <button
                       type="button"
-                      onClick={() => setZoom((z) => Math.min(3.5, +(z + 0.2).toFixed(1)))}
-                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                      onClick={() => setZoom((z) => Math.min(4, +(z + 0.2).toFixed(1)))}
+                      className="p-2 rounded-xl bg-slate-850 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700/60 transition cursor-pointer"
                       title="ซูมเข้า"
                     >
-                      <ZoomIn className="w-3.5 h-3.5" />
+                      <ZoomIn className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                {/* Rotate & Reset Buttons */}
-                <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 flex-wrap gap-2">
+                {/* Micro-Adjustment Pan Nudge + Rotate & Reset */}
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between flex-wrap gap-3">
+                  {/* Nudge D-Pad */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] font-bold text-slate-400 mr-1 hidden sm:inline">
+                      เลื่อนละเอียด:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleNudge(0, -15)}
+                      className="p-1.5 rounded-lg bg-slate-850 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700/60 transition cursor-pointer"
+                      title="เลื่อนขึ้น"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleNudge(0, 15)}
+                      className="p-1.5 rounded-lg bg-slate-850 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700/60 transition cursor-pointer"
+                      title="เลื่อนลง"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleNudge(-15, 0)}
+                      className="p-1.5 rounded-lg bg-slate-850 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700/60 transition cursor-pointer"
+                      title="เลื่อนซ้าย"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleNudge(15, 0)}
+                      className="p-1.5 rounded-lg bg-slate-850 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700/60 transition cursor-pointer"
+                      title="เลื่อนขวา"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Rotate Buttons */}
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={handleRotateCcw}
-                      className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1 transition"
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-850 hover:bg-slate-750 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1 border border-slate-700/60 transition cursor-pointer"
                       title="หมุนซ้าย 90 องศา"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
@@ -472,22 +564,49 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
                     <button
                       type="button"
                       onClick={handleRotateCw}
-                      className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1 transition"
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-850 hover:bg-slate-750 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1 border border-slate-700/60 transition cursor-pointer"
                       title="หมุนขวา 90 องศา"
                     >
                       <RotateCw className="w-3.5 h-3.5" />
                       <span>หมุนขวา</span>
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={handleReset}
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-850/80 hover:bg-slate-800 text-amber-300 text-xs font-bold flex items-center gap-1 border border-amber-500/30 transition cursor-pointer"
+                      title="กลับไปค่าเริ่มต้นตรงกลาง"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>รีเซ็ต</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Live Real-time Miniature Preview */}
+                <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-xs text-slate-300 font-bold">
+                      ตัวอย่างจริงบนบอร์ดคิว:
+                    </span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleReset}
-                    className="px-2.5 py-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-amber-300/80 hover:text-amber-200 text-xs font-bold flex items-center gap-1 transition"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>รีเซ็ตตำแหน่ง</span>
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-cyan-400 shadow-md flex-shrink-0 bg-slate-900">
+                        <canvas ref={previewCanvasRef} className="block w-full h-full object-cover" />
+                      </div>
+                      <span className="text-[11px] text-slate-400 hidden sm:inline">Avatar</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-emerald-400 shadow-md flex-shrink-0 bg-slate-900">
+                        <canvas ref={previewCanvasRef} className="block w-full h-full object-cover" />
+                      </div>
+                      <span className="text-[11px] text-slate-400 hidden sm:inline">การ์ดคิว</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </>
@@ -495,7 +614,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-950/90 flex items-center justify-end gap-3">
+        <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-950/90 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={onClose}
@@ -509,7 +628,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
             id="btn-confirm-crop"
             onClick={handleConfirm}
             disabled={isLoading || !!loadError}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-95 text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-cyan-950/60 border border-cyan-400/40 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 active:scale-95 text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-blue-950/60 border border-blue-400/40 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Check className="w-4 h-4 stroke-[3]" />
             <span>ตกลง ใช้รูปนี้</span>

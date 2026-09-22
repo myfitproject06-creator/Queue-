@@ -44,76 +44,76 @@ export const MachineSelectModal: React.FC<MachineSelectModalProps> = ({
           </p>
         </div>
 
-        {/* The 2 Large Selection Boxes: LEFT vs RIGHT */}
+        {/* The 2 Large Selection Boxes: RED TEAM (LEFT) vs BLUE TEAM (RIGHT) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
-          {/* Option 1: LEFT (ฝั่งซ้าย) */}
+          {/* Option 1: RED TEAM - LEFT (ฝั่งซ้าย) */}
           <button
             id="select-side-left-btn"
             onClick={() => onSelectSide('LEFT')}
             className={`p-7 rounded-3xl border-2 text-center transition-all relative cursor-pointer group flex flex-col items-center justify-between hover:scale-[1.02] active:scale-[0.99] ${
               currentSide === 'LEFT'
-                ? 'bg-blue-950/70 border-blue-500 shadow-2xl shadow-blue-500/25 ring-2 ring-blue-500/40'
-                : 'bg-slate-850/80 border-slate-700 hover:border-blue-400 hover:bg-slate-800/90'
+                ? 'bg-red-950/70 border-red-500 shadow-2xl shadow-red-500/25 ring-2 ring-red-500/40'
+                : 'bg-slate-850/80 border-slate-700 hover:border-red-400 hover:bg-slate-800/90'
             }`}
           >
             {currentSide === 'LEFT' && (
-              <span className="absolute top-4 right-4 text-blue-400">
+              <span className="absolute top-4 right-4 text-red-400">
                 <CheckCircle className="w-6 h-6" />
               </span>
             )}
-            <div className="w-20 h-20 rounded-3xl bg-blue-600/25 border border-blue-500/40 text-blue-400 flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition shadow-inner">
-              🟦
+            <div className="w-20 h-20 rounded-3xl bg-red-600/25 border border-red-500/40 text-red-400 flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition shadow-inner">
+              🔴
             </div>
             <div>
-              <div className="text-3xl font-black tracking-wide text-white group-hover:text-blue-300 transition">
-                LEFT
+              <div className="text-3xl font-black tracking-wide text-white group-hover:text-red-300 transition">
+                ทีมแดง
               </div>
               <div className="text-base font-bold text-slate-300 mt-1">
-                ฝั่งซ้าย
+                LEFT (ฝั่งซ้าย - เครื่อง 1)
               </div>
               <p className="text-xs text-slate-400 mt-2">
-                โต๊ะคอมพิวเตอร์ประจำฝั่งซ้ายของแผนกสี
+                โต๊ะคอมพิวเตอร์ประจำเครื่องผสมสี 1 แผนกสี
               </p>
             </div>
 
-            <div className="mt-6 w-full py-2.5 px-4 rounded-xl bg-blue-600 group-hover:bg-blue-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 transition">
-              <span>เลือกฝั่ง LEFT</span>
+            <div className="mt-6 w-full py-2.5 px-4 rounded-xl bg-red-600 group-hover:bg-red-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-red-600/30 transition">
+              <span>เลือกทีมแดง (LEFT)</span>
               <ArrowRight className="w-4 h-4" />
             </div>
           </button>
 
-          {/* Option 2: RIGHT (ฝั่งขวา) */}
+          {/* Option 2: BLUE TEAM - RIGHT (ฝั่งขวา) */}
           <button
             id="select-side-right-btn"
             onClick={() => onSelectSide('RIGHT')}
             className={`p-7 rounded-3xl border-2 text-center transition-all relative cursor-pointer group flex flex-col items-center justify-between hover:scale-[1.02] active:scale-[0.99] ${
               currentSide === 'RIGHT'
-                ? 'bg-emerald-950/70 border-emerald-500 shadow-2xl shadow-emerald-500/25 ring-2 ring-emerald-500/40'
-                : 'bg-slate-850/80 border-slate-700 hover:border-emerald-400 hover:bg-slate-800/90'
+                ? 'bg-blue-950/70 border-blue-500 shadow-2xl shadow-blue-500/25 ring-2 ring-blue-500/40'
+                : 'bg-slate-850/80 border-slate-700 hover:border-blue-400 hover:bg-slate-800/90'
             }`}
           >
             {currentSide === 'RIGHT' && (
-              <span className="absolute top-4 right-4 text-emerald-400">
+              <span className="absolute top-4 right-4 text-blue-400">
                 <CheckCircle className="w-6 h-6" />
               </span>
             )}
-            <div className="w-20 h-20 rounded-3xl bg-emerald-600/25 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition shadow-inner">
-              🟩
+            <div className="w-20 h-20 rounded-3xl bg-blue-600/25 border border-blue-500/40 text-blue-400 flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition shadow-inner">
+              🔵
             </div>
             <div>
-              <div className="text-3xl font-black tracking-wide text-white group-hover:text-emerald-300 transition">
-                RIGHT
+              <div className="text-3xl font-black tracking-wide text-white group-hover:text-blue-300 transition">
+                ทีมน้ำเงิน
               </div>
               <div className="text-base font-bold text-slate-300 mt-1">
-                ฝั่งขวา
+                RIGHT (ฝั่งขวา - เครื่อง 2)
               </div>
               <p className="text-xs text-slate-400 mt-2">
-                โต๊ะคอมพิวเตอร์ประจำฝั่งขวาของแผนกสี
+                โต๊ะคอมพิวเตอร์ประจำเครื่องผสมสี 2 แผนกสี
               </p>
             </div>
 
-            <div className="mt-6 w-full py-2.5 px-4 rounded-xl bg-emerald-600 group-hover:bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition">
-              <span>เลือกฝั่ง RIGHT</span>
+            <div className="mt-6 w-full py-2.5 px-4 rounded-xl bg-blue-600 group-hover:bg-blue-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 transition">
+              <span>เลือกทีมน้ำเงิน (RIGHT)</span>
               <ArrowRight className="w-4 h-4" />
             </div>
           </button>

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { X, Clock } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, Clock, Sparkles } from 'lucide-react';
 import { Employee, QueueEntry, Side } from '../types';
+import { getBrandVisual } from '../constants';
 
 interface AddQueueModalProps {
   isOpen: boolean;
@@ -23,16 +24,48 @@ export const AddQueueModal: React.FC<AddQueueModalProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  if (!isOpen || !side) return null;
+  const [selectedBrandFilter, setSelectedBrandFilter] = useState<string>('ALL');
 
   // Set of employee IDs already queued anywhere
-  const queuedEmployeeIds = new Set([
-    ...leftQueue.map((q) => q.employeeId),
-    ...rightQueue.map((q) => q.employeeId),
-  ]);
+  const queuedEmployeeIds = useMemo(
+    () =>
+      new Set([
+        ...leftQueue.map((q) => q.employeeId),
+        ...rightQueue.map((q) => q.employeeId),
+      ]),
+    [leftQueue, rightQueue]
+  );
 
-  const activeEmployees = employees.filter((e) => e.active);
+  const activeEmployees = useMemo(
+    () => employees.filter((e) => e.active),
+    [employees]
+  );
+
+  // Group active employees by brand for quick filter tabs
+  const brandGroups = useMemo(() => {
+    const map = new Map<string, { brand: string; count: number; color: string }>();
+    activeEmployees.forEach((emp) => {
+      const visual = getBrandVisual(emp.brand, emp.brandCode);
+      const key = visual.brandCode || visual.brand;
+      const existing = map.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        map.set(key, { brand: visual.brand, count: 1, color: visual.color });
+      }
+    });
+    return Array.from(map.entries()).map(([code, data]) => ({ code, ...data }));
+  }, [activeEmployees]);
+
+  const filteredEmployees = useMemo(() => {
+    if (selectedBrandFilter === 'ALL') return activeEmployees;
+    return activeEmployees.filter((emp) => {
+      const visual = getBrandVisual(emp.brand, emp.brandCode);
+      return (visual.brandCode || visual.brand) === selectedBrandFilter;
+    });
+  }, [activeEmployees, selectedBrandFilter]);
+
+  if (!isOpen || !side) return null;
 
   const handleSelectEmployee = async (employeeId: string) => {
     if (queuedEmployeeIds.has(employeeId)) return;
@@ -64,16 +97,16 @@ export const AddQueueModal: React.FC<AddQueueModalProps> = ({
           <div className="flex items-center gap-3">
             <div
               className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold shadow ${
-                isLeftSide ? 'bg-blue-600 text-white' : 'bg-emerald-600 text-white'
+                isLeftSide ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
               }`}
             >
-              {isLeftSide ? '🟦' : '🟩'}
+              {isLeftSide ? '🔴' : '🔵'}
             </div>
             <div>
               <h2 className="text-xl font-bold">
-                ลงคิวพนักงานฝั่ง{' '}
-                <span className={isLeftSide ? 'text-blue-400' : 'text-emerald-400'}>
-                  {side} ({isLeftSide ? 'ซ้าย' : 'ขวา'})
+                ลงคิวพนักงาน{' '}
+                <span className={isLeftSide ? 'text-red-400' : 'text-blue-400'}>
+                  {isLeftSide ? 'ทีมแดง (LEFT)' : 'ทีมน้ำเงิน (RIGHT)'}
                 </span>
               </h2>
               <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
@@ -98,15 +131,49 @@ export const AddQueueModal: React.FC<AddQueueModalProps> = ({
           </div>
         )}
 
+        {/* Quick Brand Filter Tabs */}
+        {brandGroups.length > 1 && (
+          <div className="mt-3 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+            <button
+              type="button"
+              onClick={() => setSelectedBrandFilter('ALL')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer ${
+                selectedBrandFilter === 'ALL'
+                  ? 'bg-white text-slate-900 shadow-md font-black'
+                  : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              <span>ทั้งหมด ({activeEmployees.length})</span>
+            </button>
+            {brandGroups.map((g) => (
+              <button
+                key={g.code}
+                type="button"
+                onClick={() => setSelectedBrandFilter(g.code)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0 border cursor-pointer ${
+                  selectedBrandFilter === g.code
+                    ? 'bg-slate-800 text-white border-white/60 shadow ring-1 ring-white/40'
+                    : 'bg-slate-950/70 text-slate-300 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: g.color }} />
+                <span>{g.code}</span>
+                <span className="text-[10px] opacity-75">({g.count})</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Employees Single Column List */}
-        <div className="mt-4 overflow-y-auto flex-1 pr-1">
-          <div className="text-xs font-medium text-slate-400 mb-2.5 flex items-center justify-between">
-            <span>แตะชื่อของคุณเพื่อลงคิว ({activeEmployees.length} คน):</span>
-            <span className="text-[11px] text-slate-500">เรียงแถวเดี่ยว 1 คอลัมน์</span>
+        <div className="mt-3 overflow-y-auto flex-1 pr-1">
+          <div className="text-xs font-medium text-slate-400 mb-2 flex items-center justify-between">
+            <span>แตะชื่อของคุณเพื่อลงคิว ({filteredEmployees.length} คน):</span>
+            <span className="text-[11px] text-slate-500">แถบสีขอบซ้ายระบุแบรนด์สังกัด</span>
           </div>
 
           <div className="flex flex-col gap-2">
-            {activeEmployees.map((emp) => {
+            {filteredEmployees.map((emp) => {
+              const brandVisual = getBrandVisual(emp.brand, emp.brandCode);
               const isQueued = queuedEmployeeIds.has(emp.id);
               const queuedSide = leftQueue.some((q) => q.employeeId === emp.id)
                 ? 'LEFT'
@@ -120,6 +187,9 @@ export const AddQueueModal: React.FC<AddQueueModalProps> = ({
                   id={`select-emp-${emp.id}`}
                   disabled={isQueued || isSubmitting}
                   onClick={() => handleSelectEmployee(emp.id)}
+                  style={{
+                    borderLeft: `6px solid ${brandVisual.color}`,
+                  }}
                   className={`p-3 rounded-xl border text-left flex items-center justify-between transition ${
                     isQueued
                       ? 'bg-slate-950/40 border-slate-800/60 opacity-50 cursor-not-allowed'
@@ -128,53 +198,64 @@ export const AddQueueModal: React.FC<AddQueueModalProps> = ({
                       : 'bg-slate-800/80 border-slate-700 hover:border-emerald-500 hover:bg-emerald-950/40 active:scale-[0.99] cursor-pointer shadow-sm'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="relative flex-shrink-0">
                       {emp.avatarUrl ? (
                         <img
                           src={emp.avatarUrl}
                           alt={emp.name}
-                          className="w-10 h-10 rounded-xl object-cover border border-slate-700 shadow"
+                          style={{ borderColor: brandVisual.color }}
+                          className="w-10 h-10 rounded-xl object-cover border-2 shadow"
                           onError={(e) => {
                             (e.target as HTMLElement).style.display = 'none';
                           }}
                         />
                       ) : (
                         <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm shadow"
-                          style={{ backgroundColor: emp.avatarColor || '#3b82f6' }}
+                          className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm shadow border-2"
+                          style={{
+                            backgroundColor: emp.avatarColor || brandVisual.color,
+                            borderColor: brandVisual.color,
+                          }}
                         >
                           {emp.nickname || emp.name.charAt(0)}
                         </div>
                       )}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-semibold text-white text-sm">{emp.name}</span>
-                        {emp.brandCode && (
-                          <span className="text-[10px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-500/40 px-1.5 py-0.2 rounded">
-                            {emp.brandCode}
+                        <span className="font-bold text-white text-sm truncate">{emp.name}</span>
+
+                        {/* Bold Brand Badge */}
+                        <span
+                          className={`text-[11px] font-mono font-black ${brandVisual.badgeBg} ${brandVisual.badgeText} px-2 py-0.5 rounded-md shadow-sm border border-white/20 flex items-center gap-1 flex-shrink-0`}
+                          title={`แบรนด์: ${brandVisual.brand}`}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+                          <span>{brandVisual.brandCode || brandVisual.brand}</span>
+                        </span>
+
+                        {emp.nickname && (
+                          <span className="text-[11px] font-medium text-amber-300 bg-slate-950 px-1.5 py-0.2 rounded border border-slate-800">
+                            {emp.nickname}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
-                        {emp.nickname && (
-                          <span>ชื่อเล่น: {emp.nickname}</span>
-                        )}
                         {emp.brand && (
-                          <span className="text-slate-500">• {emp.brand}</span>
+                          <span className="text-slate-300 font-medium">สังกัด: {emp.brand}</span>
                         )}
                       </div>
                     </div>
                   </div>
 
                   {isQueued ? (
-                    <span className="text-[11px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-medium border border-slate-700">
+                    <span className="text-[11px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-medium border border-slate-700 flex-shrink-0">
                       อยู่ในคิว {queuedSide} แล้ว
                     </span>
                   ) : (
                     <span
-                      className={`text-xs font-semibold px-2.5 py-1 rounded-md transition ${
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-md transition flex-shrink-0 ${
                         isLeftSide
                           ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30'
                           : 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30'
@@ -188,21 +269,23 @@ export const AddQueueModal: React.FC<AddQueueModalProps> = ({
             })}
           </div>
 
-          {activeEmployees.length === 0 && (
+          {filteredEmployees.length === 0 && (
             <div className="py-12 text-center text-slate-500 text-sm">
-              ยังไม่มีรายชื่อพนักงานในระบบ (สามารถเพิ่มรายชื่อได้ที่เมนูจัดการพนักงาน)
+              {activeEmployees.length === 0
+                ? 'ยังไม่มีรายชื่อพนักงานในระบบ (สามารถเพิ่มรายชื่อได้ที่เมนูจัดการพนักงาน)'
+                : `ไม่มีพนักงานในแบรนด์ ${selectedBrandFilter}`}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="pt-4 mt-2 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+        <div className="pt-3 mt-2 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
           <span>* พนักงานหนึ่งคนสามารถอยู่ในคิวได้เพียง 1 ฝั่งในเวลาเดียวกัน</span>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium transition cursor-pointer"
+            className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium transition cursor-pointer text-xs"
           >
-            ยกเลิก
+            ปิด
           </button>
         </div>
       </div>

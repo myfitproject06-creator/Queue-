@@ -59,7 +59,7 @@ export const SwitchSideModal: React.FC<SwitchSideModalProps> = ({
             <div>
               <h2 className="text-xl font-bold text-amber-400">สลับฝั่ง (12:00 Side Switch)</h2>
               <p className="text-xs text-slate-400">
-                สลับพนักงานระหว่างฝั่ง 🟦 LEFT ↔ 🟩 RIGHT
+                สลับพนักงานระหว่างฝั่ง 🔴 ทีมแดง (LEFT) ↔ 🔵 ทีมน้ำเงิน (RIGHT)
               </p>
             </div>
           </div>
@@ -81,19 +81,19 @@ export const SwitchSideModal: React.FC<SwitchSideModalProps> = ({
         {/* Confirmation Question */}
         <div className="my-4 text-center">
           <p className="text-lg font-bold text-white">
-            ต้องการสลับ Queue & Theme LEFT ↔ RIGHT ใช่หรือไม่?
+            ต้องการสลับ Queue & Theme ทีมแดง ↔ ทีมน้ำเงิน ใช่หรือไม่?
           </p>
           <p className="text-xs text-slate-400 mt-1">
-            การกดครั้งนี้จะสลับคิวพนักงานและสลับธีมประจำฝั่ง (หน่วยพิฆาตอสูร ↔ ฝั่งอสูร) พร้อมกันทันที
+            การกดครั้งนี้จะสลับคิวพนักงานและสลับธีมประจำฝั่ง (ทีมแดง ↔ ทีมน้ำเงิน) พร้อมกันทันที
           </p>
         </div>
 
         {/* Theme & Queue Swap Alert Note */}
         <div className="p-3 bg-purple-950/60 border border-purple-500/40 rounded-xl text-xs text-purple-200 flex items-center gap-2 mb-3">
-          <span className="text-base">🎨</span>
+          <span className="text-base">⚔️</span>
           <div>
-            <strong>สลับธีมประจำฝั่งอัตโนมัติ:</strong>{' '}
-            ธีมหน่วยพิฆาตอสูร (ทันจิโร่) และ ฝั่งอสูร (อาคาสะ) จะสลับฝั่งหน้าจอตามคิวพนักงาน
+            <strong>สลับทีมประจำฝั่งอัตโนมัติ:</strong>{' '}
+            ทีมแดง (RED) และทีมน้ำเงิน (BLUE) จะสลับฝั่งหน้าจอตามคิวพนักงาน
           </div>
         </div>
 
@@ -101,16 +101,16 @@ export const SwitchSideModal: React.FC<SwitchSideModalProps> = ({
         <div className="grid grid-cols-2 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 my-4 text-xs">
           {/* Left -> Right */}
           <div className="border-r border-slate-800 pr-3">
-            <div className="font-semibold text-blue-400 flex items-center gap-1 mb-1">
-              <span>🟦 ฝั่ง LEFT ({leftQueue.length} คน)</span>
+            <div className="font-semibold text-red-400 flex items-center gap-1 mb-1">
+              <span>🔴 ทีมแดง LEFT ({leftQueue.length} คน)</span>
             </div>
-            <div className="text-slate-400 mb-2">➔ จะย้ายไปเป็น 🟩 RIGHT:</div>
+            <div className="text-slate-400 mb-2">➔ จะย้ายไปเป็น 🔵 ทีมน้ำเงิน RIGHT:</div>
             <div className="space-y-1 max-h-28 overflow-y-auto">
               {leftQueue.length > 0 ? (
                 leftQueue.map((q, idx) => (
                   <div key={q.id} className="text-slate-300 truncate">
                     {idx + 1}. {q.employeeName}
-                    {q.status === 'SERVING' && ' (🔵 กำลังบริการ)'}
+                    {q.status === 'SERVING' && ' (🔥 กำลังบริการ)'}
                   </div>
                 ))
               ) : (
@@ -121,16 +121,16 @@ export const SwitchSideModal: React.FC<SwitchSideModalProps> = ({
 
           {/* Right -> Left */}
           <div className="pl-2">
-            <div className="font-semibold text-emerald-400 flex items-center gap-1 mb-1">
-              <span>🟩 ฝั่ง RIGHT ({rightQueue.length} คน)</span>
+            <div className="font-semibold text-blue-400 flex items-center gap-1 mb-1">
+              <span>🔵 ทีมน้ำเงิน RIGHT ({rightQueue.length} คน)</span>
             </div>
-            <div className="text-slate-400 mb-2">➔ จะย้ายไปเป็น 🟦 LEFT:</div>
+            <div className="text-slate-400 mb-2">➔ จะย้ายไปเป็น 🔴 ทีมแดง LEFT:</div>
             <div className="space-y-1 max-h-28 overflow-y-auto">
               {rightQueue.length > 0 ? (
                 rightQueue.map((q, idx) => (
                   <div key={q.id} className="text-slate-300 truncate">
                     {idx + 1}. {q.employeeName}
-                    {q.status === 'SERVING' && ' (🔵 กำลังบริการ)'}
+                    {q.status === 'SERVING' && ' (🔥 กำลังบริการ)'}
                   </div>
                 ))
               ) : (

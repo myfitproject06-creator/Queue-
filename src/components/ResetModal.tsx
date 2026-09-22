@@ -174,7 +174,7 @@ export const ResetModal: React.FC<ResetModalProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-black text-rose-300">
-                      รีเซ็ตทั้งหมดยกเว้นธีม (Reset All Except Theme)
+                      รีเซ็ตระบบเริ่มต้นใหม่ (Reset All System Data)
                     </h3>
                     <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-bold border border-rose-400/30">
                       ล้างข้อมูลพนักงาน
@@ -188,7 +188,7 @@ export const ResetModal: React.FC<ResetModalProps> = ({
                     <li>คืนค่าแบรนด์สีเริ่มต้น (9 แบรนด์มาตรฐาน) และสามารถแก้ไขได้</li>
                     <li>เมื่อตั้งชื่อคนหรือแบรนด์ใหม่แล้ว จะถูกบันทึกคงอยู่ถาวร</li>
                     <li className="text-emerald-400 font-semibold">
-                      ธีมที่เลือกไว้และการจับคู่เครื่อง (Device Pairing) จะไม่หาย
+                      การจับคู่เครื่อง (Device Pairing) จะยังคงอยู่ ไม่ต้อง Pair ใหม่
                     </li>
                   </ul>
                 </div>
