@@ -18,6 +18,7 @@ import {
 const PORT = 3000;
 const DB_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DB_DIR, 'queue_db.json');
+const UPLOADS_DIR = path.join(DB_DIR, 'uploads');
 const SETUP_PAIRING_CODE = process.env.SETUP_PAIRING_CODE || 'PQ-CENTRAL-2026';
 
 export interface StoredDeviceRecord extends AuthorizedDevice {
@@ -85,6 +86,9 @@ function initDatabase() {
   try {
     if (!fs.existsSync(DB_DIR)) {
       fs.mkdirSync(DB_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(UPLOADS_DIR)) {
+      fs.mkdirSync(UPLOADS_DIR, { recursive: true });
     }
     if (fs.existsSync(DB_FILE)) {
       const data = fs.readFileSync(DB_FILE, 'utf-8');
@@ -381,6 +385,7 @@ async function startServer() {
   app.use(express.json({ limit: '35mb' }));
   app.use(express.urlencoded({ extended: true, limit: '35mb' }));
   app.use(cookieParser());
+  app.use('/uploads', express.static(UPLOADS_DIR));
 
   // SSE Real-time Endpoint (Protected: Only Authorized Central Machines receive queue stream)
   app.get('/api/queue/stream', (req: Request, res: Response) => {
@@ -927,6 +932,87 @@ async function startServer() {
     broadcastQueueState();
 
     res.json({ success: true, requeuedEntry });
+  });
+
+  // API: Return Queue (↩ คืนคิวสำหรับคิวที่ขึ้นไปแล้ว กรณีขึ้นคิวผิด)
+  app.post('/api/queue/return', requireDeviceAuth, (req: Request, res: Response) => {
+    const { entryId, machineId, reason } = req.body as {
+      entryId: string;
+      machineId: MachineId;
+      reason?: string;
+    };
+
+    if (!entryId || !machineId) {
+      res.status(400).json({ error: 'Missing entryId or machineId' });
+      return;
+    }
+
+    const isLeft = db.leftQueue.some((q) => q.id === entryId);
+    const isRight = db.rightQueue.some((q) => q.id === entryId);
+
+    if (!isLeft && !isRight) {
+      res.status(404).json({ error: 'ไม่พบคิวนี้ในระบบ' });
+      return;
+    }
+
+    const entrySide: Side = isLeft ? 'LEFT' : 'RIGHT';
+    // Backend Enforcement: Machine can only modify its own side
+    if (!checkDeviceSidePermission(req, res, entrySide)) {
+      return;
+    }
+
+    const targetList = isLeft ? db.leftQueue : db.rightQueue;
+    const entry = targetList.find((q) => q.id === entryId);
+
+    if (!entry) {
+      res.status(404).json({ error: 'ไม่พบคิวนี้ในระบบ' });
+      return;
+    }
+
+    if (entry.status !== 'SERVING') {
+      res.status(400).json({ error: 'คืนคิวได้เฉพาะคิวที่กำลังให้บริการ (ขึ้นคิวแล้ว) เท่านั้น' });
+      return;
+    }
+
+    // Reset status back to WAITING
+    entry.status = 'WAITING';
+    delete entry.servedAt;
+    delete entry.servingMachineId;
+
+    // Move this entry back to the very front of the waiting line (Rank 01)
+    const entryIndex = targetList.indexOf(entry);
+    if (entryIndex > -1) {
+      targetList.splice(entryIndex, 1);
+    }
+    const firstWaitingIndex = targetList.findIndex(
+      (q) => q.status === 'WAITING' || q.status === 'NEXT'
+    );
+    if (firstWaitingIndex === -1) {
+      targetList.push(entry);
+    } else {
+      targetList.splice(firstWaitingIndex, 0, entry);
+    }
+
+    recomputeQueues();
+
+    const reasonText = (reason && String(reason).trim()) || 'ขึ้นคิวผิด';
+    addAuditLog({
+      action: 'RETURN_QUEUE',
+      employeeId: entry.employeeId,
+      employeeName: entry.employeeName,
+      side: entry.side,
+      machineId,
+      details: `↩ คืนคิว ${entry.employeeName} กลับสู่คิวรอลำดับแรก (กรณีขึ้นคิวผิด) โดย ${machineId} • เหตุผล: ${reasonText}`,
+    });
+
+    saveDatabase();
+    broadcastQueueState();
+
+    res.json({
+      success: true,
+      entry,
+      message: `คืนคิว ${entry.employeeName} กลับไปเป็นคิวรอลำดับแรกสำเร็จ`,
+    });
   });
 
   // API: Remove from Queue (❌ เอาออกจากคิว)
@@ -1654,7 +1740,37 @@ async function startServer() {
       res.status(400).json({ error: 'กรุณาอัปโหลดรูปภาพ' });
       return;
     }
-    res.json({ success: true, avatarUrl: imageBase64 });
+
+    try {
+      if (!fs.existsSync(UPLOADS_DIR)) {
+        fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+      }
+
+      // Check if it is a base64 data URL
+      const matches = imageBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        let ext = 'jpg';
+        if (mimeType.includes('png')) ext = 'png';
+        else if (mimeType.includes('webp')) ext = 'webp';
+
+        const filename = `avatar_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+        const filePath = path.join(UPLOADS_DIR, filename);
+        fs.writeFileSync(filePath, buffer);
+
+        res.json({ success: true, avatarUrl: `/uploads/${filename}` });
+        return;
+      }
+
+      // If it's already a saved URL or path, keep it
+      res.json({ success: true, avatarUrl: imageBase64 });
+    } catch (err: any) {
+      console.error('Upload avatar error:', err);
+      res.status(500).json({ error: 'เกิดข้อผิดพลาดในการบันทึกรูปภาพลงดิสก์' });
+    }
   });
 
   // API: Server Time for precise clock sync

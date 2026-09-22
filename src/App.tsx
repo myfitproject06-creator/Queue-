@@ -4,9 +4,12 @@ import { QueueBoard } from './components/QueueBoard';
 import { MachineSelectModal } from './components/MachineSelectModal';
 import { AddQueueModal } from './components/AddQueueModal';
 import { QuickReasonModal } from './components/QuickReasonModal';
+import { ReturnQueueModal } from './components/ReturnQueueModal';
 import { SwitchSideModal } from './components/SwitchSideModal';
 import { AuditLogModal } from './components/AuditLogModal';
 import { EmployeeManagerModal } from './components/EmployeeManagerModal';
+import { BrandManagerModal } from './components/BrandManagerModal';
+import { ResetModal } from './components/ResetModal';
 import { ItemsHandledTodayModal } from './components/ItemsHandledTodayModal';
 import { MoveQueueModal } from './components/MoveQueueModal';
 import { UnauthorizedScreen } from './components/UnauthorizedScreen';
@@ -19,9 +22,18 @@ import {
   getStoredDeviceToken,
   clearStoredDeviceToken,
   updateThemePreset,
+  createBrandApi,
+  updateBrandApi,
+  deleteBrandApi,
+  deleteEmployeeApi,
+  toggleActiveEmployeeApi,
+  resetQueueOnly,
+  resetAllExceptTheme,
+  returnQueueApi,
 } from './api';
 import {
   AuthorizedDevice,
+  BrandItem,
   Employee,
   MachineId,
   QueueEntry,
@@ -66,6 +78,8 @@ export default function App() {
   const [leftQueue, setLeftQueue] = useState<QueueEntry[]>([]);
   const [rightQueue, setRightQueue] = useState<QueueEntry[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [brands, setBrands] = useState<BrandItem[]>([]);
+  const [themeSwapped, setThemeSwapped] = useState<boolean>(false);
   const [lastSwitch, setLastSwitch] = useState<SideSwitchRecord | null>(null);
   const [canUndoSwitch, setCanUndoSwitch] = useState(false);
   const [isConnected, setIsConnected] = useState(true);
@@ -73,6 +87,7 @@ export default function App() {
   // Modals state
   const [addQueueSide, setAddQueueSide] = useState<Side | null>(null);
   const [removeTargetEntry, setRemoveTargetEntry] = useState<QueueEntry | null>(null);
+  const [returnTargetEntry, setReturnTargetEntry] = useState<QueueEntry | null>(null);
   const [moveTargetEntry, setMoveTargetEntry] = useState<QueueEntry | null>(null);
   const [moveInitialDirection, setMoveInitialDirection] = useState<'UP' | 'DOWN' | undefined>(
     undefined
@@ -80,6 +95,8 @@ export default function App() {
   const [isSwitchSidesOpen, setIsSwitchSidesOpen] = useState(false);
   const [isAuditLogsOpen, setIsAuditLogsOpen] = useState(false);
   const [isEmployeeMgrOpen, setIsEmployeeMgrOpen] = useState(false);
+  const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isHandledStatsOpen, setIsHandledStatsOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
@@ -175,6 +192,12 @@ export default function App() {
         setRightQueue(data.rightQueue || []);
         setLastSwitch(data.lastSwitch || null);
         setCanUndoSwitch(!!data.canUndoSwitch);
+        if (data.themeSwapped !== undefined) {
+          setThemeSwapped(!!data.themeSwapped);
+        }
+        if (data.brands) {
+          setBrands(data.brands);
+        }
         if (data.activeThemeId) {
           setActiveThemeId(data.activeThemeId);
           localStorage.setItem('paint_queue_theme_id', data.activeThemeId);
@@ -214,6 +237,12 @@ export default function App() {
           setLeftQueue(data.leftQueue || []);
           setRightQueue(data.rightQueue || []);
           setLastSwitch(data.lastSwitch || null);
+          if (data.themeSwapped !== undefined) {
+            setThemeSwapped(!!data.themeSwapped);
+          }
+          if (data.brands) {
+            setBrands(data.brands);
+          }
           if (data.activeThemeId) {
             setActiveThemeId(data.activeThemeId);
             localStorage.setItem('paint_queue_theme_id', data.activeThemeId);
@@ -231,6 +260,12 @@ export default function App() {
           setLeftQueue(data.leftQueue || []);
           setRightQueue(data.rightQueue || []);
           setLastSwitch(data.lastSwitch || null);
+          if (data.themeSwapped !== undefined) {
+            setThemeSwapped(!!data.themeSwapped);
+          }
+          if (data.brands) {
+            setBrands(data.brands);
+          }
           if (data.activeThemeId) {
             setActiveThemeId(data.activeThemeId);
             localStorage.setItem('paint_queue_theme_id', data.activeThemeId);
@@ -394,6 +429,20 @@ export default function App() {
     }
 
     showToast(`✓ จบลูกค้าแล้ว (${data.requeuedEntry.employeeName} กลับไปต่อท้ายคิว)`, 'success');
+  };
+
+  const handleConfirmReturnQueue = async (entryId: string, reason?: string) => {
+    try {
+      const data = await returnQueueApi(entryId, activeMachine, reason);
+      showToast(`↩ คืนคิว ${data.entry.employeeName} กลับสู่คิวรอลำดับแรกแล้ว`, 'success');
+    } catch (err: any) {
+      if (err.message?.includes('FORBIDDEN_OPPOSITE_SIDE')) {
+        showToast('ไม่มีสิทธิ์แก้ไขคิวฝั่งตรงข้าม (ดูได้อย่างเดียว)', 'error');
+        throw err;
+      }
+      showToast(err.message || 'ไม่สามารถคืนคิวได้', 'error');
+      throw err;
+    }
   };
 
   const handleConfirmRemove = async (
@@ -603,6 +652,109 @@ export default function App() {
     showToast(`อัปเดตข้อมูล ${data.employee.name} เรียบร้อยแล้ว`, 'success');
   };
 
+  const handleDeleteEmployee = async (id: string) => {
+    try {
+      await deleteEmployeeApi(id);
+      setEmployees((prev) => prev.filter((e) => e.id !== id));
+      showToast('ลบพนักงานเรียบร้อยแล้ว', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'ลบพนักงานไม่สำเร็จ', 'error');
+      throw err;
+    }
+  };
+
+  const handleToggleActiveEmployee = async (id: string) => {
+    try {
+      const data = await toggleActiveEmployeeApi(id);
+      if (data.employee) {
+        setEmployees((prev) =>
+          prev.map((e) => (e.id === id ? data.employee : e))
+        );
+        showToast(
+          `เปลี่ยนสถานะ ${data.employee.name} เป็น ${
+            data.employee.isActive !== false ? 'พร้อมปฏิบัติงาน' : 'พักการปฏิบัติงาน'
+          }`,
+          'info'
+        );
+      }
+    } catch (err: any) {
+      showToast(err.message || 'เปลี่ยนสถานะไม่สำเร็จ', 'error');
+      throw err;
+    }
+  };
+
+  const handleCreateBrand = async (name: string, code: string, color?: string) => {
+    try {
+      const data = await createBrandApi(name, code, color);
+      if (data.brands) {
+        setBrands(data.brands);
+      }
+      showToast(`เพิ่มแบรนด์ "${name}" สำเร็จ`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'เพิ่มแบรนด์ไม่สำเร็จ', 'error');
+      throw err;
+    }
+  };
+
+  const handleUpdateBrand = async (id: string, name: string, code: string, color?: string) => {
+    try {
+      const data = await updateBrandApi(id, name, code, color);
+      if (data.brands) {
+        setBrands(data.brands);
+      }
+      showToast(`อัปเดตแบรนด์ "${name}" สำเร็จ`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'แก้ไขแบรนด์ไม่สำเร็จ', 'error');
+      throw err;
+    }
+  };
+
+  const handleDeleteBrand = async (id: string) => {
+    try {
+      const data = await deleteBrandApi(id);
+      if (data.brands) {
+        setBrands(data.brands);
+      }
+      showToast('ลบแบรนด์เรียบร้อยแล้ว', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'ลบแบรนด์ไม่สำเร็จ', 'error');
+      throw err;
+    }
+  };
+
+  const handleResetQueueOnly = async () => {
+    try {
+      await resetQueueOnly();
+      setLeftQueue([]);
+      setRightQueue([]);
+      setThemeSwapped(false);
+      setLastSwitch(null);
+      setCanUndoSwitch(false);
+      setIsResetModalOpen(false);
+      showToast('🔄 รีเซ็ตคิวสำเร็จ (ล้างคิวทั้ง 2 ฝั่งเรียบร้อย)', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'รีเซ็ตคิวไม่สำเร็จ', 'error');
+      throw err;
+    }
+  };
+
+  const handleResetAllExceptTheme = async () => {
+    try {
+      await resetAllExceptTheme();
+      setLeftQueue([]);
+      setRightQueue([]);
+      setEmployees([]);
+      setThemeSwapped(false);
+      setLastSwitch(null);
+      setCanUndoSwitch(false);
+      setIsResetModalOpen(false);
+      showToast('⚠️ รีเซ็ตข้อมูลทั้งหมดสำเร็จ (ยกเว้นธีมคงเดิม)', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'รีเซ็ตข้อมูลทั้งหมดไม่สำเร็จ', 'error');
+      throw err;
+    }
+  };
+
   const handleSelectTheme = async (themeId: string) => {
     try {
       await updateThemePreset(themeId);
@@ -648,7 +800,10 @@ export default function App() {
 
   // 3. Authorized Central Machine Main Application
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">
+    <div
+      id="app-main-canvas"
+      className={`min-h-screen ${activeTheme.pageBg} text-slate-100 flex flex-col transition-all duration-500 relative overflow-x-hidden ${activeTheme.pageWallpaperPattern || ''}`}
+    >
       {/* Top Navigation & Status */}
       <Header
         machineId={machineId}
@@ -658,8 +813,10 @@ export default function App() {
         onOpenSwitchSides={() => setIsSwitchSidesOpen(true)}
         onOpenAuditLogs={() => setIsAuditLogsOpen(true)}
         onOpenEmployeeManager={() => setIsEmployeeMgrOpen(true)}
+        onOpenBrandManager={() => setIsBrandModalOpen(true)}
         onOpenHandledStats={() => setIsHandledStatsOpen(true)}
         onOpenThemeSelect={() => setIsThemeModalOpen(true)}
+        onOpenReset={() => setIsResetModalOpen(true)}
         activeTheme={activeTheme}
         lastSwitch={lastSwitch}
         canUndoSwitch={canUndoSwitch}
@@ -689,10 +846,12 @@ export default function App() {
           machineId={activeMachine}
           machineSide={machineSide || 'LEFT'}
           activeTheme={activeTheme}
+          themeSwapped={themeSwapped}
           onOpenThemeSelect={() => setIsThemeModalOpen(true)}
           onOpenAddQueue={handleOpenAddQueue}
           onStartServe={handleStartServe}
           onCompleteServe={handleCompleteServe}
+          onOpenReturnQueue={(entry) => setReturnTargetEntry(entry)}
           onOpenRemove={(entry) => setRemoveTargetEntry(entry)}
           onOpenMoveQueue={handleOpenMoveQueue}
           onDragReorderQueue={handleConfirmMoveQueue}
@@ -701,8 +860,8 @@ export default function App() {
       </main>
 
       {/* Footer Info */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-3 text-center text-[11px] text-slate-600">
-        PAINT QUEUE • ระบบจัดคิวพนักงานขายแผนกสี • ใครมาถึงก่อนได้คิวก่อน • Device Lock Protected
+      <footer className="border-t border-slate-900/80 bg-slate-950/80 backdrop-blur-md py-3 text-center text-[11px] text-slate-500">
+        PAINT QUEUE • ระบบจัดคิวพนักงานขายแผนกสี • ใครมาถึงก่อนได้คิวก่อน • ธีมปัจจุบัน: {activeTheme.name}
       </footer>
 
       {/* Toast Notification */}
@@ -754,6 +913,14 @@ export default function App() {
         onConfirmRemove={handleConfirmRemove}
       />
 
+      <ReturnQueueModal
+        isOpen={returnTargetEntry !== null}
+        entry={returnTargetEntry}
+        machineId={activeMachine}
+        onClose={() => setReturnTargetEntry(null)}
+        onConfirmReturn={handleConfirmReturnQueue}
+      />
+
       <SwitchSideModal
         isOpen={isSwitchSidesOpen}
         leftQueue={leftQueue}
@@ -771,10 +938,33 @@ export default function App() {
       <EmployeeManagerModal
         isOpen={isEmployeeMgrOpen}
         employees={employees}
+        brands={brands}
         machineId={activeMachine}
         onClose={() => setIsEmployeeMgrOpen(false)}
         onAddEmployee={handleAddEmployee}
         onUpdateEmployee={handleUpdateEmployee}
+        onDeleteEmployee={handleDeleteEmployee}
+        onToggleActiveEmployee={handleToggleActiveEmployee}
+        onOpenBrandManager={() => setIsBrandModalOpen(true)}
+      />
+
+      <BrandManagerModal
+        isOpen={isBrandModalOpen}
+        brands={brands}
+        employees={employees}
+        machineId={activeMachine}
+        onClose={() => setIsBrandModalOpen(false)}
+        onAddBrand={handleCreateBrand}
+        onUpdateBrand={handleUpdateBrand}
+        onDeleteBrand={handleDeleteBrand}
+      />
+
+      <ResetModal
+        isOpen={isResetModalOpen}
+        machineId={activeMachine}
+        onClose={() => setIsResetModalOpen(false)}
+        onResetQueueOnly={handleResetQueueOnly}
+        onResetAllExceptTheme={handleResetAllExceptTheme}
       />
 
       <MoveQueueModal

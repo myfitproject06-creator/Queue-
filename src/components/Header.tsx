@@ -12,6 +12,7 @@ import {
   BarChart2,
   Shield,
   Palette,
+  Tag,
 } from 'lucide-react';
 import { AuthorizedDevice, MachineId, Side, SideSwitchRecord, ThemePreset } from '../types';
 
@@ -23,6 +24,7 @@ interface HeaderProps {
   onOpenSwitchSides: () => void;
   onOpenAuditLogs: () => void;
   onOpenEmployeeManager: () => void;
+  onOpenBrandManager?: () => void;
   onOpenHandledStats: () => void;
   onOpenThemeSelect?: () => void;
   activeTheme?: ThemePreset;
@@ -42,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSwitchSides,
   onOpenAuditLogs,
   onOpenEmployeeManager,
+  onOpenBrandManager,
   onOpenHandledStats,
   onOpenThemeSelect,
   activeTheme,
@@ -84,7 +87,12 @@ export const Header: React.FC<HeaderProps> = ({
   });
 
   return (
-    <header className="bg-slate-900 text-white shadow-md border-b border-slate-800 sticky top-0 z-30">
+    <header
+      id="app-header-bar"
+      className={`${activeTheme?.headerBg || 'bg-slate-900'} text-white shadow-xl ${
+        activeTheme?.headerBorder || 'border-b border-slate-800'
+      } sticky top-0 z-30 transition-all duration-300 backdrop-blur-md`}
+    >
       {/* 12:00 Approaching Alert Banner */}
       {(isApproachingNoon || isNoonTime) && (
         <div
@@ -117,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-start">
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center font-black text-xl text-white shadow-inner">
-                PQ
+                {activeTheme?.icon || 'PQ'}
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-wide flex items-center gap-2">
@@ -160,6 +168,20 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Theme Atmosphere Slogan Strip (LINE theme style) */}
+          {activeTheme && (
+            <div className="hidden xl:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/70 border border-slate-800/80 shadow-inner">
+              <span className="text-base">{activeTheme.icon}</span>
+              <span className="text-xs font-bold text-slate-200">
+                {activeTheme.name.split(' ')[0]}
+              </span>
+              <span className="text-slate-600">•</span>
+              <span className="text-xs text-slate-400 italic truncate max-w-[280px]">
+                {activeTheme.themeQuote}
+              </span>
+            </div>
+          )}
 
           {/* Central Synchronized Clock & Network Status */}
           <div className="flex items-center gap-4 bg-slate-950/70 border border-slate-800 px-4 py-1.5 rounded-xl">
@@ -246,24 +268,40 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="header-employee-mgr-btn"
               onClick={onOpenEmployeeManager}
-              className="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 font-medium px-3 py-2.5 rounded-xl transition text-xs cursor-pointer"
+              className="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 font-medium px-3 py-2.5 rounded-xl transition text-xs cursor-pointer"
               title="จัดการรายชื่อพนักงาน"
             >
-              <Users className="w-4 h-4 text-slate-400" />
-              <span className="hidden sm:inline">พนักงาน</span>
+              <Users className="w-4 h-4 text-blue-400" />
+              <span>พนักงาน</span>
             </button>
+
+            {/* Brand Manager */}
+            {onOpenBrandManager && (
+              <button
+                id="header-brand-mgr-btn"
+                onClick={onOpenBrandManager}
+                className="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 text-rose-300 hover:text-white border border-rose-500/30 font-medium px-3 py-2.5 rounded-xl transition text-xs cursor-pointer shadow-sm"
+                title="จัดการแบรนด์สี (TOA, BEGER, NIPPON, CAPTAIN, ฯลฯ)"
+              >
+                <Tag className="w-4 h-4 text-rose-400" />
+                <span>แบรนด์สี</span>
+              </button>
+            )}
 
             {/* Theme Preset Switcher */}
             {onOpenThemeSelect && (
               <button
                 id="header-theme-select-btn"
                 onClick={onOpenThemeSelect}
-                className="flex items-center gap-1.5 bg-gradient-to-r from-purple-950/90 to-indigo-950/90 hover:from-purple-900 hover:to-indigo-900 text-purple-200 hover:text-white border border-purple-500/50 font-semibold px-3 py-2.5 rounded-xl transition text-xs cursor-pointer shadow-sm shadow-purple-950/40"
-                title="เลือกธีมระบบ (ดาบพิฆาตอสูร, ไททัน, สตาร์วอร์ส, ฯลฯ)"
+                className={`flex items-center gap-1.5 ${
+                  activeTheme?.headerAccentBadge ||
+                  'bg-gradient-to-r from-purple-950/90 to-indigo-950/90 text-purple-200 border border-purple-500/50'
+                } hover:opacity-90 hover:scale-[1.02] font-bold px-3 py-2.5 rounded-xl transition text-xs cursor-pointer shadow-md`}
+                title="เลือกธีมระบบ (สไตล์ LINE: ดาบพิฆาตอสูร, ไททัน, สตาร์วอร์ส, นีออน, พาสเทล, ฯลฯ)"
               >
-                <Palette className="w-4 h-4 text-purple-400" />
+                <Palette className="w-4 h-4 flex-shrink-0" />
                 <span className="hidden sm:inline">ธีม:</span>
-                <span>{activeTheme ? activeTheme.name.split(' ')[0] : 'ดาบพิฆาตอสูร'}</span>
+                <span>{activeTheme ? `${activeTheme.icon} ${activeTheme.name.split(' ')[0]}` : 'ดาบพิฆาตอสูร'}</span>
               </button>
             )}
 

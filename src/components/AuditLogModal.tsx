@@ -88,6 +88,12 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
             ✓ จบลูกค้า (ต่อท้ายคิว)
           </span>
         );
+      case 'RETURN_QUEUE':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40">
+            ↩ คืนคิว (ขึ้นผิด)
+          </span>
+        );
       case 'REMOVE_QUEUE':
         return (
           <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-600/40">
@@ -116,6 +122,12 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
         return (
           <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-950 text-teal-300 border border-teal-600/40">
             👥 เพิ่มพนักงาน
+          </span>
+        );
+      case 'EMPLOYEE_REMOVED':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-600/40">
+            👤 ลบพนักงาน
           </span>
         );
       case 'DEVICE_REGISTERED':
@@ -275,7 +287,8 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
             >
               <option value="ALL">ทุกเหตุการณ์</option>
               <option value="ENQUEUE">ลงคิว</option>
-              <option value="START_SERVICE">เริ่มบริการ</option>
+              <option value="START_SERVICE">เริ่มบริการ (ขึ้นคิว)</option>
+              <option value="RETURN_QUEUE">คืนคิว (กรณีขึ้นผิด)</option>
               <option value="COMPLETE_SERVICE">จบลูกค้า</option>
               <option value="MOVE_QUEUE">เลื่อนลำดับคิว</option>
               <option value="REMOVE_QUEUE">เอาออกจากคิว</option>

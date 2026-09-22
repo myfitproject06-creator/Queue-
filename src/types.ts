@@ -50,12 +50,14 @@ export type AuditActionType =
   | 'ENQUEUE'
   | 'START_SERVICE'
   | 'COMPLETE_SERVICE'
+  | 'RETURN_QUEUE'
   | 'REMOVE_QUEUE'
   | 'MOVE_QUEUE'
   | 'SWITCH_SIDES'
   | 'UNDO_SWITCH'
   | 'REJOIN_QUEUE'
   | 'EMPLOYEE_ADDED'
+  | 'EMPLOYEE_REMOVED'
   | 'SYSTEM_RESET'
   | 'DEVICE_REGISTERED'
   | 'DEVICE_REVOKED'
@@ -115,12 +117,22 @@ export interface ThemePresetSideConfig {
   mascotImage?: string;
   mascotQuote: string;
   motto: string;
-  colorScheme: 'blue_water' | 'purple_demon' | 'emerald_scout' | 'amber_titan' | 'cyan_jedi' | 'rose_sith' | 'classic_blue' | 'classic_green';
+  colorScheme: string;
   headerBg: string;
   borderGlow: string;
   accentBadge: string;
   primaryBadge: string;
   iconEmoji: string;
+  // LINE Theme Deep Styling:
+  sideBg?: string;
+  servingBg?: string;
+  servingBorder?: string;
+  rank1Card?: string;
+  rank1Badge?: string;
+  rankNormalBadge?: string;
+  serveBtn?: string;
+  actionAccent?: string;
+  cardHover?: string;
 }
 
 export interface ThemePreset {
@@ -129,6 +141,14 @@ export interface ThemePreset {
   tag: string;
   description: string;
   icon: string;
+  // Full-page LINE Theme Atmosphere:
+  pageBg: string;
+  pageWallpaperPattern?: string;
+  headerBg: string;
+  headerBorder: string;
+  headerAccentBadge: string;
+  themeQuote?: string;
+  previewGradient?: string;
   left: ThemePresetSideConfig;
   right: ThemePresetSideConfig;
 }

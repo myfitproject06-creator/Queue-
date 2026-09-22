@@ -79,13 +79,22 @@ export const SwitchSideModal: React.FC<SwitchSideModalProps> = ({
         )}
 
         {/* Confirmation Question */}
-        <div className="my-5 text-center">
+        <div className="my-4 text-center">
           <p className="text-lg font-bold text-white">
-            ต้องการสลับ Queue LEFT ↔ RIGHT ใช่หรือไม่?
+            ต้องการสลับ Queue & Theme LEFT ↔ RIGHT ใช่หรือไม่?
           </p>
           <p className="text-xs text-slate-400 mt-1">
-            การกดครั้งนี้จะสลับสมาชิกทั้งสองฝั่งพร้อมกันแบบ Atomic ทันที
+            การกดครั้งนี้จะสลับคิวพนักงานและสลับธีมประจำฝั่ง (หน่วยพิฆาตอสูร ↔ ฝั่งอสูร) พร้อมกันทันที
           </p>
+        </div>
+
+        {/* Theme & Queue Swap Alert Note */}
+        <div className="p-3 bg-purple-950/60 border border-purple-500/40 rounded-xl text-xs text-purple-200 flex items-center gap-2 mb-3">
+          <span className="text-base">🎨</span>
+          <div>
+            <strong>สลับธีมประจำฝั่งอัตโนมัติ:</strong>{' '}
+            ธีมหน่วยพิฆาตอสูร (ทันจิโร่) และ ฝั่งอสูร (อาคาสะ) จะสลับฝั่งหน้าจอตามคิวพนักงาน
+          </div>
         </div>
 
         {/* Preview of Swap */}

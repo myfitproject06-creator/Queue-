@@ -19,8 +19,12 @@ import {
   Lock,
   Eye,
   Palette,
+  RotateCcw,
+  ZoomIn,
+  Maximize2,
 } from 'lucide-react';
 import { QueueEntry, Side, MachineId, ThemePreset } from '../types';
+import { ImageViewerModal, ImageViewerData } from './ImageViewerModal';
 
 interface QueueBoardProps {
   leftQueue: QueueEntry[];
@@ -33,6 +37,7 @@ interface QueueBoardProps {
   onOpenAddQueue: (side: Side) => void;
   onStartServe: (entryId: string) => Promise<void>;
   onCompleteServe: (entryId: string) => Promise<void>;
+  onOpenReturnQueue: (entry: QueueEntry) => void;
   onOpenRemove: (entry: QueueEntry) => void;
   onOpenMoveQueue: (entry: QueueEntry, direction?: 'UP' | 'DOWN') => void;
   onDragReorderQueue?: (entryId: string, targetRank: number, reason?: string) => Promise<void>;
@@ -50,6 +55,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
   onOpenAddQueue,
   onStartServe,
   onCompleteServe,
+  onOpenReturnQueue,
   onOpenRemove,
   onOpenMoveQueue,
   onDragReorderQueue,
@@ -58,6 +64,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [desktopViewMode, setDesktopViewMode] = useState<'CURRENT' | 'OPPOSITE' | 'DUAL'>('CURRENT');
+  const [viewerData, setViewerData] = useState<ImageViewerData | null>(null);
 
   // Drag-and-drop reordering state (กดค้างแล้วลาก)
   const [draggedEntryId, setDraggedEntryId] = useState<string | null>(null);
@@ -241,7 +248,9 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
     return (
       <div
         id={`queue-side-${side.toLowerCase()}`}
-        className={`flex-1 rounded-3xl border flex flex-col bg-slate-900/90 shadow-2xl overflow-hidden backdrop-blur-md transition-all ${borderGlowClass}`}
+        className={`flex-1 rounded-3xl border flex flex-col ${
+          sideTheme?.sideBg || 'bg-slate-900/90'
+        } shadow-2xl overflow-hidden backdrop-blur-md transition-all ${borderGlowClass}`}
       >
         {/* Main Column Header */}
         <div className={`px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${headerBgClass}`}>
@@ -333,7 +342,9 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
               id={`btn-add-queue-${side.toLowerCase()}`}
               onClick={() => onOpenAddQueue(side)}
               className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm shadow-lg active:scale-95 transition cursor-pointer ${
-                isLeft
+                sideTheme?.primaryBadge
+                  ? `${sideTheme.primaryBadge} shadow-lg text-white`
+                  : isLeft
                   ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
               }`}
@@ -361,7 +372,12 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
           {servingEntries.length > 0 && (
             <div
               id={`serving-zone-${side.toLowerCase()}`}
-              className="rounded-2xl border-2 border-orange-500/50 bg-gradient-to-b from-orange-950/25 via-slate-900/70 to-slate-900/90 p-3 sm:p-3.5 shadow-lg shadow-orange-950/20 animate-in fade-in duration-200"
+              className={`rounded-2xl border-2 ${
+                sideTheme?.servingBorder || 'border-orange-500/50'
+              } ${
+                sideTheme?.servingBg ||
+                'bg-gradient-to-b from-orange-950/25 via-slate-900/70 to-slate-900/90'
+              } p-3 sm:p-3.5 shadow-lg shadow-orange-950/20 animate-in fade-in duration-200`}
             >
               {/* Serving Zone Header */}
               <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-orange-500/30">
@@ -380,7 +396,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                 </div>
                 {isSideEditable ? (
                   <p className="text-[11px] text-slate-400 font-medium hidden sm:inline">
-                    กด <span className="text-emerald-400 font-bold">"✓ จบคิว"</span> เพื่อกลับไปต่อท้ายแถวอัตโนมัติ
+                    กด <span className="text-emerald-400 font-bold">"✓ จบคิว"</span> เพื่อไปต่อท้าย • กด <span className="text-amber-300 font-bold">"↩ คืนคิว"</span> กรณีขึ้นผิด
                   </p>
                 ) : (
                   <p className="text-[11px] text-amber-400/90 font-medium flex items-center gap-1">
@@ -405,12 +421,12 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                     <div
                       key={entry.id}
                       id={`serving-card-${entry.id}`}
-                      className="group relative w-36 sm:w-40 md:w-44 rounded-xl border-2 border-orange-500/60 bg-gradient-to-b from-slate-900 via-orange-950/20 to-slate-950 p-2.5 sm:p-3 shadow-md shadow-orange-950/30 ring-1 ring-orange-400/25 hover:border-orange-400 transition-all flex flex-col items-center justify-between text-center flex-shrink-0"
+                      className="group relative w-48 sm:w-56 md:w-60 rounded-2xl border-2 border-orange-500/70 bg-gradient-to-b from-slate-900 via-orange-950/25 to-slate-950 p-3 sm:p-3.5 shadow-lg shadow-orange-950/30 ring-1 ring-orange-400/30 hover:border-orange-400 transition-all flex flex-col items-center justify-between text-center flex-shrink-0"
                     >
                       {/* Top Fire Indicator Badge */}
-                      <div className="absolute -top-2 bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black text-[9px] sm:text-[10px] px-2 py-0.2 rounded-full shadow-sm flex items-center gap-0.5 uppercase tracking-wider">
-                        <Flame className="w-2.5 h-2.5 fill-slate-950" />
-                        <span>ติดลูกค้า</span>
+                      <div className="absolute -top-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full shadow-md flex items-center gap-1 uppercase tracking-wider">
+                        <Flame className="w-3 h-3 fill-slate-950" />
+                        <span>กำลังติดลูกค้า</span>
                       </div>
 
                       {/* Quick remove button if needed */}
@@ -423,19 +439,35 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                             onOpenRemove(entry);
                           }}
                           title="นำออกจากคิว / ยกเลิก"
-                          className="absolute top-1 right-1 p-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-rose-950/60 transition cursor-pointer"
+                          className="absolute top-1.5 right-1.5 p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 transition cursor-pointer"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       )}
 
-                      {/* 1. COMPACT PROFILE PICTURE (Sized down from 80-96px to 56-64px) */}
-                      <div className="mt-1 relative">
+                      {/* 1. LARGE PROFILE PICTURE (Enlarged with Click-to-View Full Image) */}
+                      <div
+                        className="mt-1.5 relative group/avatar cursor-pointer"
+                        onClick={() => {
+                          setViewerData({
+                            imageUrl: entry.employeeAvatarUrl,
+                            name: entry.employeeName,
+                            nickname: entry.employeeNickname,
+                            brand: entry.employeeBrand,
+                            brandCode: entry.employeeBrandCode,
+                            avatarColor: entry.employeeAvatarColor,
+                            isServing: true,
+                            side: entry.side,
+                            statusText: `เริ่มบริการเวลา ${enteredTime} น. (ผ่านไป ${timerText} น.)`,
+                          });
+                        }}
+                        title="คลิกเพื่อดูรูปภาพแบบเต็มๆ"
+                      >
                         {entry.employeeAvatarUrl ? (
                           <img
                             src={entry.employeeAvatarUrl}
                             alt={entry.employeeName}
-                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-orange-400/80 shadow-md shadow-black/70 group-hover:scale-105 transition duration-200"
+                            className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-2xl object-cover border-2 border-orange-400/90 shadow-xl shadow-black/80 group-hover/avatar:scale-[1.03] group-hover/avatar:border-amber-300 transition duration-200"
                             onError={(e) => {
                               (e.target as HTMLElement).style.display = 'none';
                               const fallback = document.getElementById(
@@ -447,7 +479,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                         ) : null}
                         <div
                           id={`fallback-avatar-${entry.id}`}
-                          className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl items-center justify-center font-black text-white text-xl sm:text-2xl shadow-md border border-orange-400/80 ${
+                          className={`w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-2xl items-center justify-center font-black text-white text-4xl sm:text-5xl shadow-xl border-2 border-orange-400/90 group-hover/avatar:scale-[1.03] transition duration-200 ${
                             entry.employeeAvatarUrl ? 'hidden' : 'flex'
                           }`}
                           style={{
@@ -457,12 +489,44 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                           {entry.employeeNickname || entry.employeeName.charAt(0)}
                         </div>
 
+                        {/* Hover overlay hint: คลิกดูรูปเต็ม */}
+                        <div className="absolute inset-0 rounded-2xl bg-black/55 backdrop-blur-[1px] opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-1 select-none pointer-events-none">
+                          <Maximize2 className="w-6 h-6 text-amber-300 drop-shadow" />
+                          <span className="text-[11px] font-black bg-slate-900/90 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/50 shadow-md">
+                            ดูรูปเต็ม
+                          </span>
+                        </div>
+
                         {/* Live pulse dot */}
-                        <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                        <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500 border border-slate-900"></span>
+                          <span className="relative inline-flex rounded-full h-4 w-4 bg-orange-500 border-2 border-slate-900"></span>
                         </span>
                       </div>
+
+                      {/* Quick button to view full photo */}
+                      <button
+                        type="button"
+                        id={`btn-view-avatar-${entry.id}`}
+                        onClick={() => {
+                          setViewerData({
+                            imageUrl: entry.employeeAvatarUrl,
+                            name: entry.employeeName,
+                            nickname: entry.employeeNickname,
+                            brand: entry.employeeBrand,
+                            brandCode: entry.employeeBrandCode,
+                            avatarColor: entry.employeeAvatarColor,
+                            isServing: true,
+                            side: entry.side,
+                            statusText: `เริ่มบริการเวลา ${enteredTime} น. (ผ่านไป ${timerText} น.)`,
+                          });
+                        }}
+                        className="mt-1.5 px-2.5 py-0.5 rounded-full bg-slate-950/70 hover:bg-slate-800 text-amber-300/90 hover:text-amber-200 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1 transition cursor-pointer shadow-sm active:scale-95"
+                        title="คลิกดูรูปภาพแบบเต็มๆ"
+                      >
+                        <ZoomIn className="w-3 h-3 text-amber-400" />
+                        <span>กดดูรูปเต็ม</span>
+                      </button>
 
                       {/* 2. EMPLOYEE DETAILS & TIMER */}
                       <div className="w-full mt-1.5 flex flex-col items-center">
@@ -495,18 +559,32 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                         </div>
                       </div>
 
-                      {/* 3. COMPLETE SERVE BUTTON OR READ-ONLY STATUS */}
+                      {/* 3. COMPLETE SERVE & RETURN QUEUE BUTTONS OR READ-ONLY STATUS */}
                       {isSideEditable ? (
-                        <button
-                          id={`btn-complete-${entry.id}`}
-                          disabled={actionInProgress === entry.id}
-                          onClick={() => handleComplete(entry.id)}
-                          title="จบคิวแล้วกลับไปต่อท้ายแถวอัตโนมัติ"
-                          className="w-full mt-2 py-1.5 px-2 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-emerald-950/50 border border-emerald-400/40 transition cursor-pointer"
-                        >
-                          <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          <span>✓ จบคิว</span>
-                        </button>
+                        <div className="w-full mt-2 flex flex-col gap-1.5">
+                          <button
+                            id={`btn-complete-${entry.id}`}
+                            disabled={actionInProgress === entry.id}
+                            onClick={() => handleComplete(entry.id)}
+                            title="จบคิวแล้วกลับไปต่อท้ายแถวอัตโนมัติ"
+                            className="w-full py-1.5 px-2 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-emerald-950/50 border border-emerald-400/40 transition cursor-pointer"
+                          >
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <span>✓ จบคิว</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            id={`btn-return-${entry.id}`}
+                            disabled={actionInProgress === entry.id}
+                            onClick={() => onOpenReturnQueue(entry)}
+                            title="คืนคิวกลับสู่คิวรอ (กรณีขึ้นคิวผิด)"
+                            className="w-full py-1 px-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 active:scale-95 text-amber-300 hover:text-amber-200 border border-amber-500/40 hover:border-amber-400 font-bold text-[11px] flex items-center justify-center gap-1 transition shadow-sm cursor-pointer"
+                          >
+                            <RotateCcw className="w-3 h-3 text-amber-400" />
+                            <span>↩ คืนคิว (ขึ้นผิด)</span>
+                          </button>
+                        </div>
                       ) : (
                         <div
                           id={`status-serving-readonly-${entry.id}`}
@@ -723,10 +801,10 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                             : isThisDropTarget
                             ? 'ring-2 ring-cyan-400 border-cyan-400 shadow-xl shadow-cyan-950/60 bg-slate-800/90'
                             : isRankOne
-                            ? isLeft
+                            ? sideTheme?.rank1Card || (isLeft
                               ? 'bg-slate-850 border-blue-400/60 shadow-md shadow-blue-950/40 ring-1 ring-blue-500/30'
-                              : 'bg-slate-850 border-emerald-400/60 shadow-md shadow-emerald-950/40 ring-1 ring-emerald-500/30'
-                            : 'bg-slate-900/60 border-slate-700/60 hover:border-slate-600 hover:bg-slate-850/80'
+                              : 'bg-slate-850 border-emerald-400/60 shadow-md shadow-emerald-950/40 ring-1 ring-emerald-500/30')
+                            : `bg-slate-900/70 border-slate-700/60 ${sideTheme?.cardHover || 'hover:border-slate-600'} hover:bg-slate-850/80`
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -795,32 +873,49 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
 
                               {/* Compact Queue Number Badge */}
                               <div
-                                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center font-mono font-black text-sm sm:text-base shadow-inner flex-shrink-0 ${
+                                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center font-mono font-black text-sm sm:text-base shadow-inner flex-shrink-0 transition-transform ${
                                   isRankOne
-                                    ? isLeft
+                                    ? sideTheme?.rank1Badge || (isLeft
                                       ? 'bg-blue-600 text-white shadow-blue-800/50'
-                                      : 'bg-emerald-600 text-white shadow-emerald-800/50'
-                                    : 'bg-slate-950 text-slate-400 border border-slate-750'
+                                      : 'bg-emerald-600 text-white shadow-emerald-800/50')
+                                    : sideTheme?.rankNormalBadge || 'bg-slate-950 text-slate-400 border border-slate-750'
                                 }`}
                               >
                                 {rankNumber}
                               </div>
                             </div>
 
-                            {/* Compact Profile Avatar Thumbnail */}
-                            <div className="relative flex-shrink-0">
+                            {/* Profile Avatar Thumbnail - clickable to view full image */}
+                            <div
+                              className="relative flex-shrink-0 cursor-pointer group/thumb"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setViewerData({
+                                  imageUrl: entry.employeeAvatarUrl,
+                                  name: entry.employeeName,
+                                  nickname: entry.employeeNickname,
+                                  brand: entry.employeeBrand,
+                                  brandCode: entry.employeeBrandCode,
+                                  avatarColor: entry.employeeAvatarColor,
+                                  isServing: false,
+                                  side: entry.side,
+                                  statusText: `คิวรอลำดับที่ ${rankNumber} (รอมาแล้ว ${elapsedWaitMins} นาที)`,
+                                });
+                              }}
+                              title="คลิกเพื่อดูรูปภาพแบบเต็มๆ"
+                            >
                               {entry.employeeAvatarUrl ? (
                                 <img
                                   src={entry.employeeAvatarUrl}
                                   alt={entry.employeeName}
-                                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg object-cover border border-slate-600 shadow-sm"
+                                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover border border-slate-600 shadow-sm group-hover/thumb:ring-2 group-hover/thumb:ring-cyan-400 group-hover/thumb:scale-105 transition"
                                   onError={(e) => {
                                     (e.target as HTMLElement).style.display = 'none';
                                   }}
                                 />
                               ) : (
                                 <div
-                                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center font-bold text-white text-xs shadow-sm"
+                                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-bold text-white text-xs shadow-sm group-hover/thumb:ring-2 group-hover/thumb:ring-cyan-400 group-hover/thumb:scale-105 transition"
                                   style={{
                                     backgroundColor: entry.employeeAvatarColor || '#3b82f6',
                                   }}
@@ -884,10 +979,13 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                                   onTouchStart={(e) => e.stopPropagation()}
                                   disabled={actionInProgress === entry.id}
                                   onClick={() => handleServe(entry.id)}
-                                  className="flex items-center gap-1.5 font-black text-xs sm:text-sm px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl shadow-md bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 active:scale-95 text-slate-950 shadow-orange-500/30 transition cursor-pointer flex-shrink-0"
+                                  className={`flex items-center gap-1.5 font-black text-xs sm:text-sm px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl shadow-md ${
+                                    sideTheme?.serveBtn ||
+                                    'bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 shadow-orange-500/30'
+                                  } active:scale-95 transition cursor-pointer flex-shrink-0`}
                                 >
-                                  <Flame className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
-                                  <span>🔥 ขึ้นคิว</span>
+                                  <Flame className="w-3.5 h-3.5 fill-current" />
+                                  <span>ขึ้นคิว</span>
                                 </button>
                               )}
 
@@ -1022,6 +1120,72 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
 
   return (
     <div className="max-w-7xl 2xl:max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative">
+      {/* 🌟 Theme Immersion Atmosphere Bar (LINE-Theme Style) */}
+      {activeTheme && (
+        <div
+          id="theme-immersion-bar"
+          className={`mb-4 rounded-2xl border p-3 sm:p-3.5 shadow-xl transition-all duration-300 backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+            activeTheme.headerBorder
+          } ${activeTheme.headerBg}`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="text-3xl sm:text-4xl p-2 rounded-2xl bg-black/40 border border-white/10 shadow-inner flex-shrink-0">
+              {activeTheme.icon}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-white">
+                  ธีม: {activeTheme.tag}
+                </span>
+                <h2 className="text-base sm:text-lg font-black text-white tracking-wide">
+                  {activeTheme.name}
+                </h2>
+              </div>
+              <p className="text-xs text-white/80 mt-0.5 italic">
+                "{activeTheme.themeQuote}"
+              </p>
+            </div>
+          </div>
+
+          {/* Left vs Right Mascot Matchup */}
+          <div className="flex items-center gap-2 bg-black/40 border border-white/10 px-3 py-1.5 rounded-xl self-start md:self-center">
+            {activeTheme.left.mascotImage && (
+              <img
+                src={activeTheme.left.mascotImage}
+                alt={activeTheme.left.mascotName}
+                className="w-8 h-8 rounded-lg object-cover border border-white/30"
+              />
+            )}
+            <span className="text-xs font-bold text-white/90">
+              {activeTheme.left.name}
+            </span>
+            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-white/20 text-white">
+              VS
+            </span>
+            <span className="text-xs font-bold text-white/90">
+              {activeTheme.right.name}
+            </span>
+            {activeTheme.right.mascotImage && (
+              <img
+                src={activeTheme.right.mascotImage}
+                alt={activeTheme.right.mascotName}
+                className="w-8 h-8 rounded-lg object-cover border border-white/30"
+              />
+            )}
+            {onOpenThemeSelect && (
+              <button
+                type="button"
+                onClick={onOpenThemeSelect}
+                className="ml-2 text-[11px] font-black px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition cursor-pointer flex items-center gap-1 shadow-sm"
+              >
+                <Palette className="w-3 h-3" />
+                <span>เปลี่ยนธีม</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Desktop / Counter Screen View Switcher */}
       <div className="mb-4 bg-slate-900/90 border border-slate-800/80 rounded-2xl p-1.5 flex flex-wrap items-center justify-between gap-2 shadow-lg backdrop-blur-sm">
         <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 px-2 font-medium">
@@ -1149,8 +1313,8 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
       {/* Main Queue View */}
       {desktopViewMode === 'DUAL' ? (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-          {renderQueueSide('LEFT', leftQueue, '🟦 ฝั่ง LEFT (ซ้าย)', 'blue')}
-          {renderQueueSide('RIGHT', rightQueue, '🟩 ฝั่ง RIGHT (ขวา)', 'emerald')}
+          {renderQueueSide('LEFT', leftQueue, leftSideTitle, 'blue')}
+          {renderQueueSide('RIGHT', rightQueue, rightSideTitle, 'emerald')}
         </div>
       ) : desktopViewMode === 'OPPOSITE' ? (
         renderQueueSide(oppositeSide, oppositeQueue, oppositeTitle, oppositeColorScheme)
@@ -1192,6 +1356,13 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
           </div>
         </div>
       )}
+
+      {/* Image Lightbox / Full Size Viewer Modal */}
+      <ImageViewerModal
+        isOpen={viewerData !== null}
+        data={viewerData}
+        onClose={() => setViewerData(null)}
+      />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { AuthorizedDevice, DeviceAuthStatusResponse } from './types';
+import { AuthorizedDevice, DeviceAuthStatusResponse, MachineId, QueueEntry } from './types';
 
 const TOKEN_KEY = 'paint_queue_device_token';
 
@@ -185,4 +185,20 @@ export async function toggleActiveEmployeeApi(id: string) {
   if (!res.ok) throw new Error(data.error || 'เปลี่ยนสถานะพนักงานไม่สำเร็จ');
   return data;
 }
+
+export async function returnQueueApi(
+  entryId: string,
+  machineId: MachineId,
+  reason?: string
+): Promise<{ success: boolean; entry: QueueEntry; message: string }> {
+  const res = await fetchWithAuth('/api/queue/return', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entryId, machineId, reason }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'คืนคิวไม่สำเร็จ');
+  return data;
+}
+
 
