@@ -97,3 +97,92 @@ export async function revokeDevice(deviceId: string, pairingCode: string): Promi
   clearStoredDeviceToken();
   return data;
 }
+
+export async function updateThemePreset(themeId: string): Promise<{
+  success: boolean;
+  activeThemeId: string;
+  message: string;
+}> {
+  const res = await fetchWithAuth('/api/theme/set', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ themeId }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'เปลี่ยนธีมไม่สำเร็จ');
+  }
+
+  return data;
+}
+
+export async function resetQueueOnly(): Promise<{ success: boolean; message: string }> {
+  const res = await fetchWithAuth('/api/queue/reset-queue', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'รีเซ็ตคิวไม่สำเร็จ');
+  return data;
+}
+
+export async function resetAllExceptTheme(): Promise<{ success: boolean; message: string }> {
+  const res = await fetchWithAuth('/api/queue/reset-all-except-theme', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'รีเซ็ตข้อมูลทั้งหมดไม่สำเร็จ');
+  return data;
+}
+
+export async function createBrandApi(name: string, code: string, color?: string) {
+  const res = await fetchWithAuth('/api/brands', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, code, color }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'เพิ่มแบรนด์ไม่สำเร็จ');
+  return data;
+}
+
+export async function updateBrandApi(id: string, name: string, code: string, color?: string) {
+  const res = await fetchWithAuth(`/api/brands/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, code, color }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'แก้ไขแบรนด์ไม่สำเร็จ');
+  return data;
+}
+
+export async function deleteBrandApi(id: string) {
+  const res = await fetchWithAuth(`/api/brands/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'ลบแบรนด์ไม่สำเร็จ');
+  return data;
+}
+
+export async function deleteEmployeeApi(id: string) {
+  const res = await fetchWithAuth(`/api/employees/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'ลบพนักงานไม่สำเร็จ');
+  return data;
+}
+
+export async function toggleActiveEmployeeApi(id: string) {
+  const res = await fetchWithAuth(`/api/employees/${encodeURIComponent(id)}/toggle-active`, {
+    method: 'POST',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'เปลี่ยนสถานะพนักงานไม่สำเร็จ');
+  return data;
+}
+

@@ -57,7 +57,7 @@ export const AddQueueModal: React.FC<AddQueueModalProps> = ({
     >
       <div
         id="add-queue-dialog"
-        className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-w-2xl w-full p-6 text-white animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]"
+        className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-w-xl w-full p-5 sm:p-6 text-white animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]"
       >
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-800">
@@ -85,7 +85,7 @@ export const AddQueueModal: React.FC<AddQueueModalProps> = ({
           <button
             id="close-add-queue-btn"
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition"
+            className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -98,13 +98,14 @@ export const AddQueueModal: React.FC<AddQueueModalProps> = ({
           </div>
         )}
 
-        {/* Employees Grid */}
+        {/* Employees Single Column List */}
         <div className="mt-4 overflow-y-auto flex-1 pr-1">
-          <div className="text-xs font-medium text-slate-400 mb-2">
-            เลือกชื่อของคุณเพื่อลงคิว ({activeEmployees.length} คน):
+          <div className="text-xs font-medium text-slate-400 mb-2.5 flex items-center justify-between">
+            <span>แตะชื่อของคุณเพื่อลงคิว ({activeEmployees.length} คน):</span>
+            <span className="text-[11px] text-slate-500">เรียงแถวเดี่ยว 1 คอลัมน์</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="flex flex-col gap-2">
             {activeEmployees.map((emp) => {
               const isQueued = queuedEmployeeIds.has(emp.id);
               const queuedSide = leftQueue.some((q) => q.employeeId === emp.id)
@@ -119,12 +120,12 @@ export const AddQueueModal: React.FC<AddQueueModalProps> = ({
                   id={`select-emp-${emp.id}`}
                   disabled={isQueued || isSubmitting}
                   onClick={() => handleSelectEmployee(emp.id)}
-                  className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition ${
+                  className={`p-3 rounded-xl border text-left flex items-center justify-between transition ${
                     isQueued
                       ? 'bg-slate-950/40 border-slate-800/60 opacity-50 cursor-not-allowed'
                       : isLeftSide
-                      ? 'bg-slate-800/80 border-slate-700 hover:border-blue-500 hover:bg-blue-950/40 active:scale-[0.99] cursor-pointer'
-                      : 'bg-slate-800/80 border-slate-700 hover:border-emerald-500 hover:bg-emerald-950/40 active:scale-[0.99] cursor-pointer'
+                      ? 'bg-slate-800/80 border-slate-700 hover:border-blue-500 hover:bg-blue-950/40 active:scale-[0.99] cursor-pointer shadow-sm'
+                      : 'bg-slate-800/80 border-slate-700 hover:border-emerald-500 hover:bg-emerald-950/40 active:scale-[0.99] cursor-pointer shadow-sm'
                   }`}
                 >
                   <div className="flex items-center gap-3">

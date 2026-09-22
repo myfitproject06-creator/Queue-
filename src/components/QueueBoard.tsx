@@ -18,14 +18,18 @@ import {
   Monitor,
   Lock,
   Eye,
+  Palette,
 } from 'lucide-react';
-import { QueueEntry, Side, MachineId } from '../types';
+import { QueueEntry, Side, MachineId, ThemePreset } from '../types';
 
 interface QueueBoardProps {
   leftQueue: QueueEntry[];
   rightQueue: QueueEntry[];
   machineId: MachineId;
   machineSide: Side;
+  activeTheme?: ThemePreset;
+  themeSwapped?: boolean;
+  onOpenThemeSelect?: () => void;
   onOpenAddQueue: (side: Side) => void;
   onStartServe: (entryId: string) => Promise<void>;
   onCompleteServe: (entryId: string) => Promise<void>;
@@ -40,6 +44,9 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
   rightQueue,
   machineId,
   machineSide,
+  activeTheme,
+  themeSwapped = false,
+  onOpenThemeSelect,
   onOpenAddQueue,
   onStartServe,
   onCompleteServe,
@@ -207,6 +214,9 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
     colorScheme: 'blue' | 'emerald'
   ) => {
     const isLeft = side === 'LEFT';
+    // If theme is swapped via side-switching, swap which theme side config applies
+    const isThemedAsLeft = themeSwapped ? !isLeft : isLeft;
+    const sideTheme = activeTheme ? (isThemedAsLeft ? activeTheme.left : activeTheme.right) : null;
     const isCurrentMachineSide =
       (machineId === 'PC_LEFT' && isLeft) || (machineId === 'PC_RIGHT' && !isLeft);
     // Strict Scope: Only the machine's assigned side is editable. Opposite side and Dual Side are strictly Read-Only.
@@ -216,42 +226,64 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
     const servingEntries = queue.filter((q) => q.status === 'SERVING');
     const waitingEntries = queue.filter((q) => q.status !== 'SERVING');
 
+    const borderGlowClass = sideTheme
+      ? sideTheme.borderGlow
+      : isLeft
+      ? 'border-blue-500/40 shadow-blue-950/40 ring-1 ring-blue-500/20'
+      : 'border-emerald-500/40 shadow-emerald-950/40 ring-1 ring-emerald-500/20';
+
+    const headerBgClass = sideTheme
+      ? `bg-gradient-to-r ${sideTheme.headerBg} border-b border-slate-800/80`
+      : isLeft
+      ? 'bg-gradient-to-r from-blue-950/90 via-blue-900/50 to-slate-900 border-blue-800/60'
+      : 'bg-gradient-to-r from-emerald-950/90 via-emerald-900/50 to-slate-900 border-emerald-800/60';
+
     return (
       <div
         id={`queue-side-${side.toLowerCase()}`}
-        className={`flex-1 rounded-3xl border flex flex-col bg-slate-900/90 shadow-2xl overflow-hidden backdrop-blur-md transition-all ${
-          isLeft
-            ? 'border-blue-500/40 shadow-blue-950/40 ring-1 ring-blue-500/20'
-            : 'border-emerald-500/40 shadow-emerald-950/40 ring-1 ring-emerald-500/20'
-        }`}
+        className={`flex-1 rounded-3xl border flex flex-col bg-slate-900/90 shadow-2xl overflow-hidden backdrop-blur-md transition-all ${borderGlowClass}`}
       >
         {/* Main Column Header */}
-        <div
-          className={`px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b ${
-            isLeft
-              ? 'bg-gradient-to-r from-blue-950/90 via-blue-900/50 to-slate-900 border-blue-800/60'
-              : 'bg-gradient-to-r from-emerald-950/90 via-emerald-900/50 to-slate-900 border-emerald-800/60'
-          }`}
-        >
+        <div className={`px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${headerBgClass}`}>
           <div className="flex items-center gap-3">
-            <div
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl font-black shadow-lg ${
-                isLeft
-                  ? 'bg-blue-600 text-white shadow-blue-500/30'
-                  : 'bg-emerald-600 text-white shadow-emerald-500/30'
-              }`}
-            >
-              {isLeft ? '🟦' : '🟩'}
-            </div>
+            {sideTheme?.mascotImage ? (
+              <div className="relative group flex-shrink-0">
+                <img
+                  src={sideTheme.mascotImage}
+                  alt={sideTheme.mascotName}
+                  className="w-14 h-14 rounded-2xl object-cover border-2 border-white/20 shadow-xl ring-2 ring-purple-500/30 group-hover:scale-105 transition-transform"
+                />
+                <span className="absolute -bottom-1 -right-1 text-xs bg-slate-900/90 rounded-full px-1 border border-slate-700 shadow">
+                  {sideTheme.iconEmoji}
+                </span>
+              </div>
+            ) : (
+              <div
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl font-black shadow-lg ${
+                  isLeft
+                    ? 'bg-blue-600 text-white shadow-blue-500/30'
+                    : 'bg-emerald-600 text-white shadow-emerald-500/30'
+                }`}
+              >
+                {sideTheme ? sideTheme.iconEmoji : isLeft ? '🟦' : '🟩'}
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2
                   className={`text-xl font-black tracking-tight ${
-                    isLeft ? 'text-blue-300' : 'text-emerald-300'
+                    isLeft ? 'text-blue-200' : 'text-emerald-200'
                   }`}
                 >
-                  {title}
+                  {sideTheme ? `${sideTheme.name} (${side})` : title}
                 </h2>
+                {sideTheme && (
+                  <span
+                    className={`text-[10px] font-black px-2 py-0.5 rounded-full border shadow-sm ${sideTheme.accentBadge}`}
+                  >
+                    {sideTheme.badge}
+                  </span>
+                )}
                 {isSideEditable ? (
                   <span
                     className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
@@ -269,7 +301,13 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                   </span>
                 )}
               </div>
-              <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5 font-medium">
+              {sideTheme && (
+                <div className="text-[11px] text-slate-300 flex items-center gap-2 mt-0.5">
+                  <span className="font-semibold text-slate-200">{sideTheme.mascotName}:</span>
+                  <span className="italic text-slate-400">"{sideTheme.mascotQuote}"</span>
+                </div>
+              )}
+              <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5 font-medium flex-wrap">
                 <span>
                   ทั้งหมด <strong className="text-white font-mono">{queue.length}</strong> คน
                 </span>
@@ -280,6 +318,10 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                 <span>•</span>
                 <span className="text-blue-300">
                   ⏳ รอลูกค้า <strong>{waitingEntries.length}</strong>
+                </span>
+                <span>•</span>
+                <span className="text-slate-500 text-[11px] hidden sm:inline" title="ระบบจะล้างคิวเริ่มต้นวันใหม่อัตโนมัติทุกเที่ยงคืน (00:00 น.)">
+                  🔄 รีเซตคิวอัตโนมัติ 00:00 น.
                 </span>
               </div>
             </div>
@@ -313,43 +355,43 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
 
         <div className="p-4 sm:p-5 flex-1 flex flex-col gap-4 overflow-y-auto">
           {/* =========================================================================
-              ZONE 1: 🔥 ขึ้นคิว / กำลังติดลูกค้า (SERVING AREA)
-              Large Square Cards arranged horizontally with prominent profile pictures
+              ZONE 1: 🔥 ขึ้นคิว / กำลังติดลูกค้า (SERVING AREA) - ปรับขนาดให้กะทัดรัดขึ้น
+              Compact Cards arranged horizontally with proportional profile pictures
              ========================================================================= */}
           {servingEntries.length > 0 && (
             <div
               id={`serving-zone-${side.toLowerCase()}`}
-              className="rounded-2xl border-2 border-orange-500/50 bg-gradient-to-b from-orange-950/30 via-slate-900/70 to-slate-900/95 p-3.5 sm:p-4 shadow-xl shadow-orange-950/30 animate-in fade-in duration-200"
+              className="rounded-2xl border-2 border-orange-500/50 bg-gradient-to-b from-orange-950/25 via-slate-900/70 to-slate-900/90 p-3 sm:p-3.5 shadow-lg shadow-orange-950/20 animate-in fade-in duration-200"
             >
               {/* Serving Zone Header */}
-              <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-orange-500/30">
+              <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-orange-500/30">
                 <div className="flex items-center gap-2">
-                  <span className="p-1.5 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/40">
-                    <Flame className="w-4 h-4 fill-orange-400 text-orange-400 animate-pulse" />
+                  <span className="p-1 rounded-lg bg-orange-500/20 text-orange-400 border border-orange-500/40">
+                    <Flame className="w-3.5 h-3.5 fill-orange-400 text-orange-400 animate-pulse" />
                   </span>
                   <div>
-                    <h3 className="text-sm font-black text-orange-300 uppercase tracking-wider flex items-center gap-2">
+                    <h3 className="text-xs sm:text-sm font-black text-orange-300 uppercase tracking-wider flex items-center gap-2">
                       กำลังติดลูกค้า
-                      <span className="bg-orange-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full shadow-sm">
+                      <span className="bg-orange-500 text-slate-950 text-[11px] font-black px-2 py-0.2 rounded-full shadow-sm">
                         {servingEntries.length} คน
                       </span>
                     </h3>
                   </div>
                 </div>
                 {isSideEditable ? (
-                  <p className="text-xs text-slate-400 font-medium hidden sm:inline">
-                    กด <span className="text-emerald-400 font-bold">"✓ จบคิว"</span> เมื่อเสร็จเพื่อกลับไปต่อท้ายแถวอัตโนมัติ
+                  <p className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                    กด <span className="text-emerald-400 font-bold">"✓ จบคิว"</span> เพื่อกลับไปต่อท้ายแถวอัตโนมัติ
                   </p>
                 ) : (
-                  <p className="text-xs text-amber-400/90 font-medium flex items-center gap-1">
-                    <Lock className="w-3.5 h-3.5 text-amber-400" />
-                    <span>โหมดดูอย่างเดียว (เครื่องฝั่ง {side} เป็นผู้จัดการคิว)</span>
+                  <p className="text-[11px] text-amber-400/90 font-medium flex items-center gap-1">
+                    <Lock className="w-3 h-3 text-amber-400" />
+                    <span>โหมดดูอย่างเดียว</span>
                   </p>
                 )}
               </div>
 
-              {/* Large Square Serving Cards: Arranged Horizontally */}
-              <div className="flex flex-wrap gap-4 lg:gap-5 items-stretch overflow-x-auto pb-1.5 pt-1">
+              {/* Compact Serving Cards: Reduced Size */}
+              <div className="flex flex-wrap gap-2.5 sm:gap-3 items-stretch overflow-x-auto pb-1 pt-0.5">
                 {servingEntries.map((entry) => {
                   const timerText = formatElapsedTimer(entry.servedAt);
                   const enteredTime = entry.servedAt
@@ -363,21 +405,37 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                     <div
                       key={entry.id}
                       id={`serving-card-${entry.id}`}
-                      className="group relative w-60 sm:w-64 lg:w-72 xl:w-80 rounded-2xl border-2 border-orange-500/60 bg-gradient-to-b from-slate-900 via-orange-950/25 to-slate-950 p-4 lg:p-5 shadow-xl shadow-orange-950/40 ring-1 ring-orange-400/30 hover:border-orange-400 transition-all flex flex-col items-center justify-between text-center flex-shrink-0"
+                      className="group relative w-36 sm:w-40 md:w-44 rounded-xl border-2 border-orange-500/60 bg-gradient-to-b from-slate-900 via-orange-950/20 to-slate-950 p-2.5 sm:p-3 shadow-md shadow-orange-950/30 ring-1 ring-orange-400/25 hover:border-orange-400 transition-all flex flex-col items-center justify-between text-center flex-shrink-0"
                     >
                       {/* Top Fire Indicator Badge */}
-                      <div className="absolute -top-3 bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black text-[11px] lg:text-xs px-3.5 py-0.5 rounded-full shadow-md flex items-center gap-1 uppercase tracking-wider">
-                        <Flame className="w-3.5 h-3.5 fill-slate-950" />
-                        <span>กำลังติดลูกค้า</span>
+                      <div className="absolute -top-2 bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black text-[9px] sm:text-[10px] px-2 py-0.2 rounded-full shadow-sm flex items-center gap-0.5 uppercase tracking-wider">
+                        <Flame className="w-2.5 h-2.5 fill-slate-950" />
+                        <span>ติดลูกค้า</span>
                       </div>
 
-                      {/* 1. LARGE SQUARE PROFILE PICTURE */}
-                      <div className="mt-2 relative">
+                      {/* Quick remove button if needed */}
+                      {isSideEditable && (
+                        <button
+                          type="button"
+                          id={`btn-remove-serving-${entry.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenRemove(entry);
+                          }}
+                          title="นำออกจากคิว / ยกเลิก"
+                          className="absolute top-1 right-1 p-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-rose-950/60 transition cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+
+                      {/* 1. COMPACT PROFILE PICTURE (Sized down from 80-96px to 56-64px) */}
+                      <div className="mt-1 relative">
                         {entry.employeeAvatarUrl ? (
                           <img
                             src={entry.employeeAvatarUrl}
                             alt={entry.employeeName}
-                            className="w-36 h-36 sm:w-40 sm:h-40 lg:w-44 lg:h-44 xl:w-48 xl:h-48 rounded-2xl object-cover border-2 border-orange-400 shadow-xl shadow-black/70 group-hover:scale-105 transition duration-200"
+                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-orange-400/80 shadow-md shadow-black/70 group-hover:scale-105 transition duration-200"
                             onError={(e) => {
                               (e.target as HTMLElement).style.display = 'none';
                               const fallback = document.getElementById(
@@ -389,7 +447,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                         ) : null}
                         <div
                           id={`fallback-avatar-${entry.id}`}
-                          className={`w-36 h-36 sm:w-40 sm:h-40 lg:w-44 lg:h-44 xl:w-48 xl:h-48 rounded-2xl items-center justify-center font-black text-white text-4xl lg:text-5xl shadow-xl border-2 border-orange-400 ${
+                          className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl items-center justify-center font-black text-white text-xl sm:text-2xl shadow-md border border-orange-400/80 ${
                             entry.employeeAvatarUrl ? 'hidden' : 'flex'
                           }`}
                           style={{
@@ -400,63 +458,62 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                         </div>
 
                         {/* Live pulse dot */}
-                        <span className="absolute -bottom-1 -right-1 flex h-4 w-4 lg:h-5 lg:w-5">
+                        <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-4 w-4 lg:h-5 lg:w-5 bg-orange-500 border-2 border-slate-900"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500 border border-slate-900"></span>
                         </span>
                       </div>
 
                       {/* 2. EMPLOYEE DETAILS & TIMER */}
-                      <div className="w-full mt-3 flex flex-col items-center">
-                        <h4 className="text-base sm:text-lg lg:text-xl font-black text-white tracking-tight truncate max-w-full">
+                      <div className="w-full mt-1.5 flex flex-col items-center">
+                        <h4 className="text-xs sm:text-sm font-black text-white tracking-tight truncate max-w-full">
                           {entry.employeeName}
                         </h4>
 
-                        <div className="flex items-center justify-center gap-1.5 mt-1 flex-wrap">
+                        <div className="flex items-center justify-center gap-1 mt-0.5 flex-wrap">
                           {entry.employeeBrandCode && (
-                            <span className="bg-rose-950/90 border border-rose-500/60 text-rose-300 font-mono font-black px-2 py-0.5 rounded-md text-xs lg:text-sm tracking-wider shadow-sm flex items-center gap-1">
-                              <span>•</span>
-                              <span>{entry.employeeBrandCode}</span>
+                            <span className="bg-rose-950/90 border border-rose-500/60 text-rose-300 font-mono font-black px-1.5 py-0.2 rounded text-[10px] tracking-wider shadow-sm">
+                              {entry.employeeBrandCode}
                             </span>
                           )}
 
                           {entry.employeeNickname && (
-                            <span className="text-xs lg:text-sm text-amber-300 bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-md font-semibold">
+                            <span className="text-[10px] sm:text-[11px] text-amber-300 bg-slate-800 border border-slate-700 px-1 py-0.2 rounded font-semibold">
                               {entry.employeeNickname}
                             </span>
                           )}
                         </div>
 
-                        {/* Timer & Start time */}
-                        <div className="mt-2.5 w-full flex items-center justify-center gap-1.5 bg-orange-950/50 border border-orange-500/30 text-orange-300 font-mono text-xs lg:text-sm font-bold py-1.5 lg:py-2 px-3 rounded-xl shadow-inner">
-                          <Timer className="w-4 h-4 text-orange-400 animate-pulse" />
-                          <span>บริการ {timerText} น.</span>
+                        {/* Compact Timer & Start time */}
+                        <div className="mt-1.5 w-full flex items-center justify-center gap-1 bg-orange-950/40 border border-orange-500/30 text-orange-300 font-mono text-[10px] sm:text-[11px] font-bold py-0.5 px-1.5 rounded-lg shadow-inner">
+                          <Timer className="w-3 h-3 text-orange-400 animate-pulse" />
+                          <span>{timerText} น.</span>
                           <span className="text-slate-500">•</span>
-                          <span className="text-slate-400 font-normal text-[11px] lg:text-xs">
-                            เริ่ม {enteredTime}
+                          <span className="text-slate-400 font-normal text-[9px]">
+                            {enteredTime}
                           </span>
                         </div>
                       </div>
 
-                      {/* 3. FULL-WIDTH COMPLETE SERVE BUTTON OR READ-ONLY STATUS */}
+                      {/* 3. COMPLETE SERVE BUTTON OR READ-ONLY STATUS */}
                       {isSideEditable ? (
                         <button
                           id={`btn-complete-${entry.id}`}
                           disabled={actionInProgress === entry.id}
                           onClick={() => handleComplete(entry.id)}
                           title="จบคิวแล้วกลับไปต่อท้ายแถวอัตโนมัติ"
-                          className="w-full mt-3 py-2.5 lg:py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-95 text-white font-black text-sm lg:text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 border border-emerald-400/40 transition cursor-pointer"
+                          className="w-full mt-2 py-1.5 px-2 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-emerald-950/50 border border-emerald-400/40 transition cursor-pointer"
                         >
-                          <Check className="w-4 h-4 lg:w-5 lg:h-5 stroke-[3]" />
-                          <span>✓ จบคิว (ต่อท้าย)</span>
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          <span>✓ จบคิว</span>
                         </button>
                       ) : (
                         <div
                           id={`status-serving-readonly-${entry.id}`}
-                          className="w-full mt-3 py-2 px-3 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-400 text-xs font-semibold flex items-center justify-center gap-1.5 select-none"
+                          className="w-full mt-2 py-1 px-1.5 rounded-md bg-slate-950/80 border border-slate-800 text-slate-400 text-[10px] font-semibold flex items-center justify-center gap-1 select-none"
                         >
-                          <Lock className="w-3.5 h-3.5 text-amber-400" />
-                          <span>จัดการได้ที่เครื่องฝั่ง {side}</span>
+                          <Lock className="w-3 h-3 text-amber-400" />
+                          <span>ดูอย่างเดียว</span>
                         </div>
                       )}
                     </div>
@@ -534,7 +591,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-2.5 sm:gap-3 flex-1">
+              <div className="flex flex-col gap-2 sm:gap-2.5 flex-1 w-full">
                 {waitingEntries.map((entry, index) => {
                   const rankNumber = String(index + 1).padStart(2, '0');
                   const isRankOne = index === 0;
@@ -556,7 +613,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                     <React.Fragment key={entry.id}>
                       {/* Drop Target Indicator when dragging */}
                       {isThisDropTarget && (
-                        <div className="col-span-full py-2 px-3.5 rounded-xl bg-gradient-to-r from-cyan-950 via-slate-900 to-cyan-950 border-2 border-cyan-400 text-cyan-200 text-xs font-bold flex items-center justify-between shadow-xl shadow-cyan-950/80 animate-pulse my-1 select-none">
+                        <div className="w-full py-2 px-3.5 rounded-xl bg-gradient-to-r from-cyan-950 via-slate-900 to-cyan-950 border-2 border-cyan-400 text-cyan-200 text-xs font-bold flex items-center justify-between shadow-xl shadow-cyan-950/80 animate-pulse my-1 select-none">
                           <div className="flex items-center gap-2">
                             <ArrowUpDown className="w-3.5 h-3.5 text-cyan-300 animate-bounce" />
                             <span>
@@ -868,14 +925,18 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
 
                               {/* Remove button */}
                               <button
+                                type="button"
                                 id={`btn-remove-${entry.id}`}
                                 draggable={false}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onTouchStart={(e) => e.stopPropagation()}
                                 disabled={actionInProgress === entry.id}
-                                onClick={() => onOpenRemove(entry)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onOpenRemove(entry);
+                                }}
                                 title="เอาออกจากคิว (พัก/ไปธุระ/กลับบ้าน)"
-                                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-slate-700/80 hover:border-rose-700/50 rounded-lg transition text-xs cursor-pointer"
+                                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/50 border border-slate-700/80 hover:border-rose-600/60 rounded-lg transition text-xs cursor-pointer active:scale-95"
                               >
                                 <X className="w-3.5 h-3.5" />
                               </button>
@@ -912,7 +973,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                       }
                       resetDragState();
                     }}
-                    className="col-span-full text-center py-2.5 px-3 border border-dashed border-cyan-500/50 rounded-xl text-cyan-400 text-xs sm:text-sm bg-cyan-950/20 hover:bg-cyan-950/40 hover:border-cyan-400 transition select-none flex items-center justify-center gap-2"
+                    className="w-full text-center py-2.5 px-3 border border-dashed border-cyan-500/50 rounded-xl text-cyan-400 text-xs sm:text-sm bg-cyan-950/20 hover:bg-cyan-950/40 hover:border-cyan-400 transition select-none flex items-center justify-center gap-2"
                   >
                     <ChevronDown className="w-4 h-4" />
                     <span>
@@ -940,12 +1001,23 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
 
   const isLeft = machineSide === 'LEFT';
   const activeQueue = isLeft ? leftQueue : rightQueue;
-  const activeTitle = isLeft ? '🟦 ฝั่ง LEFT (ซ้าย)' : '🟩 ฝั่ง RIGHT (ขวา)';
+
+  const effectiveLeftSideTheme = themeSwapped ? activeTheme?.right : activeTheme?.left;
+  const effectiveRightSideTheme = themeSwapped ? activeTheme?.left : activeTheme?.right;
+
+  const leftSideTitle = effectiveLeftSideTheme
+    ? `${effectiveLeftSideTheme.iconEmoji} ${effectiveLeftSideTheme.name} (LEFT)`
+    : '🟦 ฝั่ง LEFT (ซ้าย)';
+  const rightSideTitle = effectiveRightSideTheme
+    ? `${effectiveRightSideTheme.iconEmoji} ${effectiveRightSideTheme.name} (RIGHT)`
+    : '🟩 ฝั่ง RIGHT (ขวา)';
+
+  const activeTitle = isLeft ? leftSideTitle : rightSideTitle;
   const activeColorScheme = isLeft ? 'blue' : 'emerald';
 
   const oppositeSide = isLeft ? 'RIGHT' : 'LEFT';
   const oppositeQueue = isLeft ? rightQueue : leftQueue;
-  const oppositeTitle = isLeft ? '🟩 ฝั่ง RIGHT (ขวา)' : '🟦 ฝั่ง LEFT (ซ้าย)';
+  const oppositeTitle = isLeft ? rightSideTitle : leftSideTitle;
   const oppositeColorScheme = isLeft ? 'emerald' : 'blue';
 
   return (
@@ -1004,16 +1076,31 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
           </button>
         </div>
 
-        {onChangeMachineSide && (
-          <button
-            type="button"
-            onClick={onChangeMachineSide}
-            className="text-xs text-slate-400 hover:text-slate-200 px-2.5 py-1 rounded-lg hover:bg-slate-800/80 transition flex items-center gap-1 ml-auto"
-            title="เปลี่ยนการตั้งค่าเครื่องนี้"
-          >
-            <span>สลับเครื่อง</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2 ml-auto">
+          {onOpenThemeSelect && (
+            <button
+              type="button"
+              id="btn-switch-theme-board"
+              onClick={onOpenThemeSelect}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer bg-purple-950/80 hover:bg-purple-900 text-purple-300 border border-purple-500/40 shadow-sm"
+              title="เปลี่ยนธีมของระบบ"
+            >
+              <Palette className="w-3.5 h-3.5 text-purple-400" />
+              <span>🎨 ธีม: {activeTheme ? activeTheme.name.split(' ')[0] : 'ดาบพิฆาตอสูร'}</span>
+            </button>
+          )}
+
+          {onChangeMachineSide && (
+            <button
+              type="button"
+              onClick={onChangeMachineSide}
+              className="text-xs text-slate-400 hover:text-slate-200 px-2.5 py-1 rounded-lg hover:bg-slate-800/80 transition flex items-center gap-1"
+              title="เปลี่ยนการตั้งค่าเครื่องนี้"
+            >
+              <span>สลับเครื่อง</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Informative Banner when in Opposite or Dual Side view */}

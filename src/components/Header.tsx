@@ -11,8 +11,9 @@ import {
   Clock,
   BarChart2,
   Shield,
+  Palette,
 } from 'lucide-react';
-import { AuthorizedDevice, MachineId, Side, SideSwitchRecord } from '../types';
+import { AuthorizedDevice, MachineId, Side, SideSwitchRecord, ThemePreset } from '../types';
 
 interface HeaderProps {
   machineId: MachineId | null;
@@ -23,6 +24,9 @@ interface HeaderProps {
   onOpenAuditLogs: () => void;
   onOpenEmployeeManager: () => void;
   onOpenHandledStats: () => void;
+  onOpenThemeSelect?: () => void;
+  activeTheme?: ThemePreset;
+  onOpenReset?: () => void;
   lastSwitch?: SideSwitchRecord | null;
   canUndoSwitch?: boolean;
   onUndoSwitch?: () => void;
@@ -39,6 +43,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAuditLogs,
   onOpenEmployeeManager,
   onOpenHandledStats,
+  onOpenThemeSelect,
+  activeTheme,
+  onOpenReset,
   lastSwitch,
   canUndoSwitch,
   onUndoSwitch,
@@ -245,6 +252,33 @@ export const Header: React.FC<HeaderProps> = ({
               <Users className="w-4 h-4 text-slate-400" />
               <span className="hidden sm:inline">พนักงาน</span>
             </button>
+
+            {/* Theme Preset Switcher */}
+            {onOpenThemeSelect && (
+              <button
+                id="header-theme-select-btn"
+                onClick={onOpenThemeSelect}
+                className="flex items-center gap-1.5 bg-gradient-to-r from-purple-950/90 to-indigo-950/90 hover:from-purple-900 hover:to-indigo-900 text-purple-200 hover:text-white border border-purple-500/50 font-semibold px-3 py-2.5 rounded-xl transition text-xs cursor-pointer shadow-sm shadow-purple-950/40"
+                title="เลือกธีมระบบ (ดาบพิฆาตอสูร, ไททัน, สตาร์วอร์ส, ฯลฯ)"
+              >
+                <Palette className="w-4 h-4 text-purple-400" />
+                <span className="hidden sm:inline">ธีม:</span>
+                <span>{activeTheme ? activeTheme.name.split(' ')[0] : 'ดาบพิฆาตอสูร'}</span>
+              </button>
+            )}
+
+            {/* System Reset Button (รีเซ็ตคิว หรือ รีเซ็ตทั้งหมด) */}
+            {onOpenReset && (
+              <button
+                id="header-reset-btn"
+                onClick={onOpenReset}
+                className="flex items-center gap-1.5 bg-slate-800/80 hover:bg-rose-950 text-slate-300 hover:text-rose-300 border border-slate-700 hover:border-rose-600/50 font-medium px-3 py-2.5 rounded-xl transition text-xs cursor-pointer shadow-sm"
+                title="รีเซ็ตคิว หรือ รีเซ็ตทั้งหมดยกเว้นธีม"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                <span>รีเซ็ต</span>
+              </button>
+            )}
 
             {/* Device Management Button */}
             {onOpenDeviceManagement && (

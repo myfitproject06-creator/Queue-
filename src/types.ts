@@ -106,10 +106,49 @@ export interface SideSwitchRecord {
   rightCountBefore: number;
 }
 
+export interface ThemePresetSideConfig {
+  name: string;
+  subName: string;
+  badge: string;
+  mascotName: string;
+  mascotTitle: string;
+  mascotImage?: string;
+  mascotQuote: string;
+  motto: string;
+  colorScheme: 'blue_water' | 'purple_demon' | 'emerald_scout' | 'amber_titan' | 'cyan_jedi' | 'rose_sith' | 'classic_blue' | 'classic_green';
+  headerBg: string;
+  borderGlow: string;
+  accentBadge: string;
+  primaryBadge: string;
+  iconEmoji: string;
+}
+
+export interface ThemePreset {
+  id: string;
+  name: string;
+  tag: string;
+  description: string;
+  icon: string;
+  left: ThemePresetSideConfig;
+  right: ThemePresetSideConfig;
+}
+
+export interface BrandItem {
+  id: string;
+  name: string;
+  code: string;
+  color?: string;
+  createdAt?: string;
+}
+
 export interface QueueState {
   leftQueue: QueueEntry[];
   rightQueue: QueueEntry[];
   lastSwitch?: SideSwitchRecord | null;
+  lastDailyResetDate?: string;
+  activeThemeId?: string;
+  themeSwapped?: boolean;
+  brands?: BrandItem[];
   serverTime: string;
 }
 

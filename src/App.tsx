@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from './components/Header';
 import { QueueBoard } from './components/QueueBoard';
 import { MachineSelectModal } from './components/MachineSelectModal';
@@ -12,11 +12,13 @@ import { MoveQueueModal } from './components/MoveQueueModal';
 import { UnauthorizedScreen } from './components/UnauthorizedScreen';
 import { PairDeviceModal } from './components/PairDeviceModal';
 import { DeviceManagementModal } from './components/DeviceManagementModal';
+import { ThemeSelectModal } from './components/ThemeSelectModal';
 import {
   checkDeviceAuthStatus,
   fetchWithAuth,
   getStoredDeviceToken,
   clearStoredDeviceToken,
+  updateThemePreset,
 } from './api';
 import {
   AuthorizedDevice,
@@ -26,6 +28,7 @@ import {
   Side,
   SideSwitchRecord,
 } from './types';
+import { DEFAULT_THEME_ID, THEME_PRESETS } from './constants';
 import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
 const MACHINE_SIDE_STORAGE_KEY = 'paint_queue_machine_side';
@@ -78,6 +81,16 @@ export default function App() {
   const [isAuditLogsOpen, setIsAuditLogsOpen] = useState(false);
   const [isEmployeeMgrOpen, setIsEmployeeMgrOpen] = useState(false);
   const [isHandledStatsOpen, setIsHandledStatsOpen] = useState(false);
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+
+  // Theme Preset System State
+  const [activeThemeId, setActiveThemeId] = useState<string>(() => {
+    return localStorage.getItem('paint_queue_theme_id') || DEFAULT_THEME_ID;
+  });
+
+  const activeTheme = useMemo(() => {
+    return THEME_PRESETS.find((p) => p.id === activeThemeId) || THEME_PRESETS[0];
+  }, [activeThemeId]);
 
   // Notifications / Toasts
   const [toastMessage, setToastMessage] = useState<{
@@ -162,6 +175,10 @@ export default function App() {
         setRightQueue(data.rightQueue || []);
         setLastSwitch(data.lastSwitch || null);
         setCanUndoSwitch(!!data.canUndoSwitch);
+        if (data.activeThemeId) {
+          setActiveThemeId(data.activeThemeId);
+          localStorage.setItem('paint_queue_theme_id', data.activeThemeId);
+        }
         if (data.employees) setEmployees(data.employees);
         setIsConnected(true);
       }
@@ -197,6 +214,10 @@ export default function App() {
           setLeftQueue(data.leftQueue || []);
           setRightQueue(data.rightQueue || []);
           setLastSwitch(data.lastSwitch || null);
+          if (data.activeThemeId) {
+            setActiveThemeId(data.activeThemeId);
+            localStorage.setItem('paint_queue_theme_id', data.activeThemeId);
+          }
           if (data.employees) setEmployees(data.employees);
           setIsConnected(true);
         } catch (err) {
@@ -210,6 +231,10 @@ export default function App() {
           setLeftQueue(data.leftQueue || []);
           setRightQueue(data.rightQueue || []);
           setLastSwitch(data.lastSwitch || null);
+          if (data.activeThemeId) {
+            setActiveThemeId(data.activeThemeId);
+            localStorage.setItem('paint_queue_theme_id', data.activeThemeId);
+          }
           if (data.employees) setEmployees(data.employees);
           setIsConnected(true);
         } catch (err) {
@@ -399,12 +424,19 @@ export default function App() {
       throw new Error('อุปกรณ์นี้ไม่ได้รับอนุญาตให้ทำรายการ');
     }
 
+    if (res.status === 404) {
+      showToast('คิวนี้ถูกนำออกหรืออัปเดตไปแล้ว', 'info');
+      fetchState();
+      return;
+    }
+
     if (!res.ok) {
       throw new Error(data.error || 'ไม่สามารถนำออกจากคิวได้');
     }
 
+    const empName = data.removedEntry?.employeeName || 'พนักงาน';
     showToast(
-      `นำ ${data.removedEntry.employeeName} ออกจากคิวแล้ว (บันทึกประวัติแล้ว)`,
+      `นำ ${empName} ออกจากคิวแล้ว (บันทึกประวัติแล้ว)`,
       'info'
     );
   };
@@ -571,6 +603,19 @@ export default function App() {
     showToast(`อัปเดตข้อมูล ${data.employee.name} เรียบร้อยแล้ว`, 'success');
   };
 
+  const handleSelectTheme = async (themeId: string) => {
+    try {
+      await updateThemePreset(themeId);
+      setActiveThemeId(themeId);
+      localStorage.setItem('paint_queue_theme_id', themeId);
+      const preset = THEME_PRESETS.find((p) => p.id === themeId);
+      showToast(`เปลี่ยนธีมเป็น "${preset?.name || themeId}" สำเร็จ!`, 'success');
+      setIsThemeModalOpen(false);
+    } catch (err: any) {
+      showToast(err.message || 'เปลี่ยนธีมไม่สำเร็จ', 'error');
+    }
+  };
+
   // 1. Loading screen while verifying initial device status
   if (!authChecked) {
     return (
@@ -614,6 +659,8 @@ export default function App() {
         onOpenAuditLogs={() => setIsAuditLogsOpen(true)}
         onOpenEmployeeManager={() => setIsEmployeeMgrOpen(true)}
         onOpenHandledStats={() => setIsHandledStatsOpen(true)}
+        onOpenThemeSelect={() => setIsThemeModalOpen(true)}
+        activeTheme={activeTheme}
         lastSwitch={lastSwitch}
         canUndoSwitch={canUndoSwitch}
         onUndoSwitch={handleUndoSwitch}
@@ -641,6 +688,8 @@ export default function App() {
           rightQueue={rightQueue}
           machineId={activeMachine}
           machineSide={machineSide || 'LEFT'}
+          activeTheme={activeTheme}
+          onOpenThemeSelect={() => setIsThemeModalOpen(true)}
           onOpenAddQueue={handleOpenAddQueue}
           onStartServe={handleStartServe}
           onCompleteServe={handleCompleteServe}
@@ -763,6 +812,13 @@ export default function App() {
         onClose={() => setIsDeviceManagementOpen(false)}
         device={authorizedDevice}
         onRevokedSuccess={handleRevokedSuccess}
+      />
+
+      <ThemeSelectModal
+        isOpen={isThemeModalOpen}
+        onClose={() => setIsThemeModalOpen(false)}
+        activeThemeId={activeThemeId}
+        onSelectTheme={handleSelectTheme}
       />
     </div>
   );

@@ -7,6 +7,7 @@ import { createServer as createViteServer } from 'vite';
 import {
   AuditLogEntry,
   AuthorizedDevice,
+  BrandItem,
   Employee,
   MachineId,
   QueueEntry,
@@ -23,228 +24,51 @@ export interface StoredDeviceRecord extends AuthorizedDevice {
   tokenHash: string; // SHA-256 hash of device token
 }
 
+export const DEFAULT_BRANDS: BrandItem[] = [
+  { id: 'b_toa', name: 'TOA', code: 'TOA', color: '#2563eb' },
+  { id: 'b_beger', name: 'BEGER', code: 'BGR', color: '#ea580c' },
+  { id: 'b_nippon', name: 'NIPPON', code: 'NPT', color: '#dc2626' },
+  { id: 'b_captain', name: 'CAPTAIN', code: 'CPT', color: '#0284c7' },
+  { id: 'b_jotun', name: 'JOTUN', code: 'JTN', color: '#d97706' },
+  { id: 'b_dulux', name: 'DULUX', code: 'DLX', color: '#7c3aed' },
+  { id: 'b_delta', name: 'DELTA', code: 'DLT', color: '#10b981' },
+  { id: 'b_jbp', name: 'JBP', code: 'JBP', color: '#16a34a' },
+  { id: 'b_woodtect', name: 'WOODTECT', code: 'WDT', color: '#854d0e' },
+];
+
 interface DatabaseSchema {
   employees: Employee[];
+  brands: BrandItem[];
   leftQueue: QueueEntry[];
   rightQueue: QueueEntry[];
   lastSwitch: SideSwitchRecord | null;
   lastSwitchUndoSnapshot: {
     leftQueue: QueueEntry[];
     rightQueue: QueueEntry[];
+    themeSwapped?: boolean;
     timestamp: string;
   } | null;
+  lastDailyResetDate?: string;
+  activeThemeId?: string;
+  themeSwapped?: boolean;
   auditLogs: AuditLogEntry[];
   devices: StoredDeviceRecord[];
 }
 
-const DEFAULT_EMPLOYEES: Employee[] = [
-  {
-    id: 'emp_01',
-    name: 'สมชาย (เอ)',
-    nickname: 'A',
-    brand: 'Nippon Paint',
-    brandCode: 'NPT',
-    active: true,
-    avatarColor: '#dc2626',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'emp_02',
-    name: 'สมศักดิ์ (บี)',
-    nickname: 'B',
-    brand: 'TOA',
-    brandCode: 'TOA',
-    active: true,
-    avatarColor: '#2563eb',
-    avatarUrl: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'emp_03',
-    name: 'วนิดา (ซี)',
-    nickname: 'C',
-    brand: 'JBP',
-    brandCode: 'JBP',
-    active: true,
-    avatarColor: '#16a34a',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'emp_04',
-    name: 'กิตติพงษ์ (ดี)',
-    nickname: 'D',
-    brand: 'Beger',
-    brandCode: 'BGR',
-    active: true,
-    avatarColor: '#ea580c',
-    avatarUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'emp_05',
-    name: 'ภัทรพล (อี)',
-    nickname: 'E',
-    brand: 'Captain',
-    brandCode: 'CPT',
-    active: true,
-    avatarColor: '#0284c7',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'emp_06',
-    name: 'อภิสิทธิ์ (เอฟ)',
-    nickname: 'F',
-    brand: 'Dulux',
-    brandCode: 'DLX',
-    active: true,
-    avatarColor: '#7c3aed',
-    avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'emp_07',
-    name: 'ธนพร (จี)',
-    nickname: 'G',
-    brand: 'Nippon Paint',
-    brandCode: 'NPT',
-    active: true,
-    avatarColor: '#dc2626',
-    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'emp_08',
-    name: 'นพดล (เอช)',
-    nickname: 'H',
-    brand: 'TOA',
-    brandCode: 'TOA',
-    active: true,
-    avatarColor: '#2563eb',
-    avatarUrl: 'https://images.unsplash.com/photo-1563460716037-460b3dd14abb?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'emp_09',
-    name: 'สุภาภรณ์ (ไอ)',
-    nickname: 'I',
-    brand: 'JBP',
-    brandCode: 'JBP',
-    active: true,
-    avatarColor: '#16a34a',
-    avatarUrl: 'https://images.unsplash.com/photo-1527526029430-319f10814151?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'emp_10',
-    name: 'วิรัช (เจ)',
-    nickname: 'J',
-    brand: 'Pamapale',
-    brandCode: 'PMP',
-    active: true,
-    avatarColor: '#0d9488',
-    avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80',
-  },
-];
-
 function getInitialState(): DatabaseSchema {
   const now = Date.now();
   return {
-    employees: DEFAULT_EMPLOYEES,
-    leftQueue: [
-      {
-        id: 'q_' + (now - 120000),
-        employeeId: 'emp_01',
-        employeeName: 'สมชาย (เอ)',
-        employeeNickname: 'A',
-        employeeBrand: 'Nippon Paint',
-        employeeBrandCode: 'NPT',
-        employeeAvatarUrl: DEFAULT_EMPLOYEES[0].avatarUrl,
-        employeeAvatarColor: DEFAULT_EMPLOYEES[0].avatarColor,
-        side: 'LEFT',
-        status: 'WAITING',
-        enteredAt: new Date(now - 120000).toISOString(),
-      },
-      {
-        id: 'q_' + (now - 90000),
-        employeeId: 'emp_02',
-        employeeName: 'สมศักดิ์ (บี)',
-        employeeNickname: 'B',
-        employeeBrand: 'TOA',
-        employeeBrandCode: 'TOA',
-        employeeAvatarUrl: DEFAULT_EMPLOYEES[1].avatarUrl,
-        employeeAvatarColor: DEFAULT_EMPLOYEES[1].avatarColor,
-        side: 'LEFT',
-        status: 'WAITING',
-        enteredAt: new Date(now - 90000).toISOString(),
-      },
-      {
-        id: 'q_' + (now - 60000),
-        employeeId: 'emp_03',
-        employeeName: 'วนิดา (ซี)',
-        employeeNickname: 'C',
-        employeeBrand: 'JBP',
-        employeeBrandCode: 'JBP',
-        employeeAvatarUrl: DEFAULT_EMPLOYEES[2].avatarUrl,
-        employeeAvatarColor: DEFAULT_EMPLOYEES[2].avatarColor,
-        side: 'LEFT',
-        status: 'WAITING',
-        enteredAt: new Date(now - 60000).toISOString(),
-      },
-      {
-        id: 'q_' + (now - 30000),
-        employeeId: 'emp_04',
-        employeeName: 'กิตติพงษ์ (ดี)',
-        employeeNickname: 'D',
-        employeeBrand: 'Beger',
-        employeeBrandCode: 'BGR',
-        employeeAvatarUrl: DEFAULT_EMPLOYEES[3].avatarUrl,
-        employeeAvatarColor: DEFAULT_EMPLOYEES[3].avatarColor,
-        side: 'LEFT',
-        status: 'WAITING',
-        enteredAt: new Date(now - 30000).toISOString(),
-      },
-    ],
-    rightQueue: [
-      {
-        id: 'q_' + (now - 110000),
-        employeeId: 'emp_05',
-        employeeName: 'ภัทรพล (อี)',
-        employeeNickname: 'E',
-        employeeBrand: 'Captain',
-        employeeBrandCode: 'CPT',
-        employeeAvatarUrl: DEFAULT_EMPLOYEES[4].avatarUrl,
-        employeeAvatarColor: DEFAULT_EMPLOYEES[4].avatarColor,
-        side: 'RIGHT',
-        status: 'WAITING',
-        enteredAt: new Date(now - 110000).toISOString(),
-      },
-      {
-        id: 'q_' + (now - 80000),
-        employeeId: 'emp_06',
-        employeeName: 'อภิสิทธิ์ (เอฟ)',
-        employeeNickname: 'F',
-        employeeBrand: 'Dulux',
-        employeeBrandCode: 'DLX',
-        employeeAvatarUrl: DEFAULT_EMPLOYEES[5].avatarUrl,
-        employeeAvatarColor: DEFAULT_EMPLOYEES[5].avatarColor,
-        side: 'RIGHT',
-        status: 'WAITING',
-        enteredAt: new Date(now - 80000).toISOString(),
-      },
-      {
-        id: 'q_' + (now - 50000),
-        employeeId: 'emp_07',
-        employeeName: 'ธนพร (จี)',
-        employeeNickname: 'G',
-        employeeBrand: 'Nippon Paint',
-        employeeBrandCode: 'NPT',
-        employeeAvatarUrl: DEFAULT_EMPLOYEES[6].avatarUrl,
-        employeeAvatarColor: DEFAULT_EMPLOYEES[6].avatarColor,
-        side: 'RIGHT',
-        status: 'WAITING',
-        enteredAt: new Date(now - 50000).toISOString(),
-      },
-    ],
+    employees: [],
+    brands: DEFAULT_BRANDS,
+    leftQueue: [],
+    rightQueue: [],
     lastSwitch: null,
     lastSwitchUndoSnapshot: null,
+    themeSwapped: false,
     auditLogs: [
       {
         id: 'log_init',
-        timestamp: new Date(now - 125000).toISOString(),
+        timestamp: new Date(now).toISOString(),
         action: 'SYSTEM_RESET',
         machineId: 'PC_LEFT',
         details: 'เริ่มต้นระบบ PAINT QUEUE แผนกสี',
@@ -267,68 +91,54 @@ function initDatabase() {
       db = JSON.parse(data);
       console.log('Loaded database from', DB_FILE);
 
-      // Backfill avatars and brands for employees if missing
       let modified = false;
-      db.employees = db.employees.map((emp, idx) => {
-        const defaultMatch = DEFAULT_EMPLOYEES.find((d) => d.id === emp.id) || DEFAULT_EMPLOYEES[idx % DEFAULT_EMPLOYEES.length];
-        let changed = false;
-        if (!emp.avatarUrl && defaultMatch?.avatarUrl) {
-          emp.avatarUrl = defaultMatch.avatarUrl;
-          changed = true;
-        }
-        if (!emp.brand && defaultMatch?.brand) {
-          emp.brand = defaultMatch.brand;
-          changed = true;
-        }
-        if (!emp.brandCode && defaultMatch?.brandCode) {
-          emp.brandCode = defaultMatch.brandCode;
-          changed = true;
-        }
-        if (changed) modified = true;
-        return emp;
-      });
 
-      // Backfill avatars and brands in existing queue entries
-      const fillQueueFields = (queue: QueueEntry[]) =>
-        queue.map((q) => {
-          const emp = db.employees.find((e) => e.id === q.employeeId);
-          if (emp) {
-            if (!q.employeeAvatarUrl && emp.avatarUrl) {
-              modified = true;
-              q.employeeAvatarUrl = emp.avatarUrl;
-            }
-            if (!q.employeeNickname && emp.nickname) {
-              modified = true;
-              q.employeeNickname = emp.nickname;
-            }
-            if (!q.employeeAvatarColor && emp.avatarColor) {
-              modified = true;
-              q.employeeAvatarColor = emp.avatarColor;
-            }
-            if (!q.employeeBrand && emp.brand) {
-              modified = true;
-              q.employeeBrand = emp.brand;
-            }
-            if (!q.employeeBrandCode && emp.brandCode) {
-              modified = true;
-              q.employeeBrandCode = emp.brandCode;
-            }
-          }
-          return q;
-        });
+      // Ensure employees array exists
+      if (!Array.isArray(db.employees)) {
+        db.employees = [];
+        modified = true;
+      }
 
-      db.leftQueue = fillQueueFields(db.leftQueue);
-      db.rightQueue = fillQueueFields(db.rightQueue);
+      // Ensure brands array exists
+      if (!Array.isArray(db.brands) || db.brands.length === 0) {
+        db.brands = JSON.parse(JSON.stringify(DEFAULT_BRANDS));
+        modified = true;
+      }
+
+      // Ensure themeSwapped exists
+      if (typeof db.themeSwapped !== 'boolean') {
+        db.themeSwapped = false;
+        modified = true;
+      }
+
+      if (!Array.isArray(db.leftQueue)) {
+        db.leftQueue = [];
+        modified = true;
+      }
+
+      if (!Array.isArray(db.rightQueue)) {
+        db.rightQueue = [];
+        modified = true;
+      }
 
       if (!Array.isArray(db.devices)) {
         db.devices = [];
         modified = true;
       }
 
+      if (!db.activeThemeId) {
+        db.activeThemeId = 'demon-slayer';
+        modified = true;
+      }
+
       if (modified) {
         saveDatabase();
       }
+      // Ensure daily reset check runs on startup
+      checkAndPerformDailyReset('SERVER_BOOT');
     } else {
+      db.lastDailyResetDate = getBangkokDateString();
+      db.activeThemeId = 'demon-slayer';
       saveDatabase();
       console.log('Initialized new database at', DB_FILE);
     }
@@ -387,12 +197,70 @@ function broadcast(eventType: string, payload: any) {
   }
 }
 
+// Thailand (Bangkok) current date string: YYYY-MM-DD
+function getBangkokDateString(d: Date = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Bangkok',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(d);
+  } catch {
+    return d.toISOString().split('T')[0];
+  }
+}
+
+// Automatic Daily Queue Reset when reaching a new day (00:00 Bangkok time)
+function checkAndPerformDailyReset(triggeredBy: string = 'SCHEDULED_CHECK'): boolean {
+  const todayStr = getBangkokDateString();
+
+  if (!db.lastDailyResetDate) {
+    db.lastDailyResetDate = todayStr;
+    saveDatabase();
+    return false;
+  }
+
+  if (db.lastDailyResetDate !== todayStr) {
+    const previousDate = db.lastDailyResetDate;
+    const leftCount = db.leftQueue.length;
+    const rightCount = db.rightQueue.length;
+    console.log(
+      `🌅 [PAINT QUEUE] Automatic Daily Queue Reset triggered: ${previousDate} -> ${todayStr} (${triggeredBy})`
+    );
+
+    // Reset active queues for the new day
+    db.leftQueue = [];
+    db.rightQueue = [];
+    db.lastSwitch = null;
+    db.lastSwitchUndoSnapshot = null;
+    db.themeSwapped = false;
+    db.lastDailyResetDate = todayStr;
+
+    addAuditLog({
+      action: 'SYSTEM_RESET',
+      machineId: 'PC_LEFT',
+      details: `🌅 รีเซตคิวอัตโนมัติเมื่อขึ้นวันใหม่ (${todayStr}) ล้างคิวค้างวันก่อนหน้า (${previousDate}) [ฝั่งซ้าย: ${leftCount} คิว, ฝั่งขวา: ${rightCount} คิว]`,
+    });
+
+    saveDatabase();
+    broadcastQueueState();
+    return true;
+  }
+
+  return false;
+}
+
 function broadcastQueueState() {
   recomputeQueues();
   const state = {
     leftQueue: db.leftQueue,
     rightQueue: db.rightQueue,
     lastSwitch: db.lastSwitch,
+    lastDailyResetDate: db.lastDailyResetDate,
+    activeThemeId: db.activeThemeId || 'demon-slayer',
+    themeSwapped: !!db.themeSwapped,
+    brands: db.brands || [],
     serverTime: new Date().toISOString(),
     employees: db.employees,
   };
@@ -510,7 +378,8 @@ async function startServer() {
   recomputeQueues();
 
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '35mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '35mb' }));
   app.use(cookieParser());
 
   // SSE Real-time Endpoint (Protected: Only Authorized Central Machines receive queue stream)
@@ -538,6 +407,7 @@ async function startServer() {
     });
 
     sseClients.add(res);
+    checkAndPerformDailyReset('SSE_STREAM_CONNECT');
     recomputeQueues();
 
     // Send initial snapshot with authorized device info
@@ -545,6 +415,10 @@ async function startServer() {
       leftQueue: db.leftQueue,
       rightQueue: db.rightQueue,
       lastSwitch: db.lastSwitch,
+      lastDailyResetDate: db.lastDailyResetDate,
+      activeThemeId: db.activeThemeId || 'demon-slayer',
+      themeSwapped: !!db.themeSwapped,
+      brands: db.brands || [],
       serverTime: new Date().toISOString(),
       employees: db.employees,
       device: {
@@ -772,17 +646,77 @@ async function startServer() {
 
   // API: Get current queue state (Protected: Unauthorized devices get 403 Forbidden)
   app.get('/api/queue/state', requireDeviceAuth, (_req: Request, res: Response) => {
+    checkAndPerformDailyReset('GET_STATE');
     recomputeQueues();
     res.json({
       leftQueue: db.leftQueue,
       rightQueue: db.rightQueue,
       lastSwitch: db.lastSwitch,
+      lastDailyResetDate: db.lastDailyResetDate,
+      activeThemeId: db.activeThemeId || 'demon-slayer',
+      themeSwapped: !!db.themeSwapped,
+      brands: db.brands || [],
       canUndoSwitch: !!(
         db.lastSwitchUndoSnapshot &&
         Date.now() - new Date(db.lastSwitchUndoSnapshot.timestamp).getTime() < 60000
       ),
       serverTime: new Date().toISOString(),
       employees: db.employees,
+    });
+  });
+
+  // API: Set Active Theme Preset (Real-time synchronization across all devices)
+  app.post('/api/theme/set', requireDeviceAuth, (req: Request, res: Response) => {
+    const { themeId } = req.body as { themeId?: string };
+    if (!themeId) {
+      res.status(400).json({ error: 'กรุณาระบุ Theme ID' });
+      return;
+    }
+
+    db.activeThemeId = themeId;
+    const device = (req as any).authorizedDevice as StoredDeviceRecord | undefined;
+    addAuditLog({
+      action: 'SYSTEM_RESET',
+      machineId: device?.side === 'RIGHT' ? 'PC_RIGHT' : 'PC_LEFT',
+      details: `🎨 เปลี่ยนธีมระบบเป็น "${themeId}" โดยเครื่อง ${device?.deviceId || 'PC'}`,
+    });
+
+    saveDatabase();
+    broadcastQueueState();
+
+    res.json({
+      success: true,
+      activeThemeId: db.activeThemeId,
+      message: `เปลี่ยนธีมระบบเป็น ${themeId} เรียบร้อยแล้ว`,
+    });
+  });
+
+  // API: Manual Daily Queue Reset (Requires Device Auth)
+  app.post('/api/queue/reset-daily', requireDeviceAuth, (req: Request, res: Response) => {
+    const todayStr = getBangkokDateString();
+    const leftCount = db.leftQueue.length;
+    const rightCount = db.rightQueue.length;
+    const device = (req as any).authorizedDevice as StoredDeviceRecord | undefined;
+
+    db.leftQueue = [];
+    db.rightQueue = [];
+    db.lastSwitch = null;
+    db.lastSwitchUndoSnapshot = null;
+    db.lastDailyResetDate = todayStr;
+
+    addAuditLog({
+      action: 'SYSTEM_RESET',
+      machineId: device?.side === 'RIGHT' ? 'PC_RIGHT' : 'PC_LEFT',
+      details: `🔄 รีเซตคิวเริ่มต้นวันใหม่โดยเครื่อง ${device?.deviceId || 'PC'} วันที่ ${todayStr} [ล้างฝั่งซ้าย: ${leftCount} คิว, ล้างฝั่งขวา: ${rightCount} คิว]`,
+    });
+
+    saveDatabase();
+    broadcastQueueState();
+
+    res.json({
+      success: true,
+      message: `รีเซตคิวเริ่มต้นวันใหม่ (${todayStr}) เรียบร้อยแล้ว`,
+      lastDailyResetDate: todayStr,
     });
   });
 
@@ -1000,21 +934,26 @@ async function startServer() {
   app.post('/api/queue/remove', requireDeviceAuth, (req: Request, res: Response) => {
     const { entryId, reasonKey, reasonText, machineId } = req.body as {
       entryId: string;
-      reasonKey: string;
+      reasonKey?: string;
       reasonText?: string;
-      machineId: MachineId;
+      machineId?: MachineId;
     };
 
-    if (!entryId || !reasonKey || !machineId) {
-      res.status(400).json({ error: 'Missing required parameters' });
+    if (!entryId) {
+      res.status(400).json({ error: 'กรุณาระบุ entryId ของคิวที่ต้องการนำออก' });
       return;
     }
+
+    const device = (req as any).authorizedDevice as StoredDeviceRecord | undefined;
+    const effectiveReasonKey = (reasonKey && String(reasonKey).trim()) || 'อื่น ๆ';
+    const effectiveMachineId: MachineId =
+      machineId || (device?.side === 'RIGHT' ? 'PC_RIGHT' : 'PC_LEFT');
 
     const isLeft = db.leftQueue.some((q) => q.id === entryId);
     const isRight = db.rightQueue.some((q) => q.id === entryId);
 
     if (!isLeft && !isRight) {
-      res.status(404).json({ error: 'ไม่พบคิวนี้ในระบบ' });
+      res.status(404).json({ error: 'ไม่พบคิวนี้ในระบบ หรืออาจถูกนำออกไปแล้ว' });
       return;
     }
 
@@ -1028,7 +967,7 @@ async function startServer() {
     const index = targetList.findIndex((q) => q.id === entryId);
     const [removedEntry] = targetList.splice(index, 1);
 
-    const fullReason = reasonText ? `${reasonKey}: ${reasonText}` : reasonKey;
+    const fullReason = reasonText ? `${effectiveReasonKey}: ${reasonText}` : effectiveReasonKey;
 
     recomputeQueues();
 
@@ -1037,7 +976,7 @@ async function startServer() {
       employeeId: removedEntry.employeeId,
       employeeName: removedEntry.employeeName,
       side: removedEntry.side,
-      machineId,
+      machineId: effectiveMachineId,
       reason: fullReason,
       details: `นำออกจากคิวฝั่ง ${removedEntry.side} (เหตุผล: ${fullReason})`,
     });
@@ -1200,6 +1139,7 @@ async function startServer() {
     db.lastSwitchUndoSnapshot = {
       leftQueue: JSON.parse(JSON.stringify(db.leftQueue)),
       rightQueue: JSON.parse(JSON.stringify(db.rightQueue)),
+      themeSwapped: db.themeSwapped,
       timestamp: new Date().toISOString(),
     };
 
@@ -1222,6 +1162,9 @@ async function startServer() {
     db.leftQueue = newLeftQueue;
     db.rightQueue = newRightQueue;
 
+    // Also toggle theme assigned to sides! (e.g. หน่วยพิฆาตอสูร ↔ สิบสองจันทราอสูร)
+    db.themeSwapped = !db.themeSwapped;
+
     db.lastSwitch = {
       switchedAt: new Date().toISOString(),
       machineId,
@@ -1234,7 +1177,7 @@ async function startServer() {
     addAuditLog({
       action: 'SWITCH_SIDES',
       machineId,
-      details: `🔄 สลับฝั่งสำเร็จ: LEFT (${leftCountBefore} คน) ↔ RIGHT (${rightCountBefore} คน)`,
+      details: `🔄 สลับฝั่งสำเร็จ: LEFT (${leftCountBefore} คน) ↔ RIGHT (${rightCountBefore} คน) พร้อมสลับธีมประจำฝั่ง`,
     });
 
     saveDatabase();
@@ -1243,6 +1186,7 @@ async function startServer() {
     res.json({
       success: true,
       lastSwitch: db.lastSwitch,
+      themeSwapped: db.themeSwapped,
       leftCount: db.leftQueue.length,
       rightCount: db.rightQueue.length,
     });
@@ -1265,6 +1209,7 @@ async function startServer() {
 
     db.leftQueue = db.lastSwitchUndoSnapshot.leftQueue;
     db.rightQueue = db.lastSwitchUndoSnapshot.rightQueue;
+    db.themeSwapped = !!db.lastSwitchUndoSnapshot.themeSwapped;
     db.lastSwitchUndoSnapshot = null;
 
     recomputeQueues();
@@ -1272,7 +1217,7 @@ async function startServer() {
     addAuditLog({
       action: 'UNDO_SWITCH',
       machineId,
-      details: '↩️ ย้อนกลับการสลับฝั่งครั้งล่าสุดสำเร็จ',
+      details: '↩️ ย้อนกลับการสลับฝั่งและธีมครั้งล่าสุดสำเร็จ',
     });
 
     saveDatabase();
@@ -1527,6 +1472,191 @@ async function startServer() {
     res.json({ success: true, employee: emp });
   });
 
+  // API: Delete Employee permanently
+  app.delete('/api/employees/:id', requireDeviceAuth, (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { machineId } = req.body as { machineId?: MachineId };
+
+    const empIndex = db.employees.findIndex((e) => e.id === id);
+    if (empIndex === -1) {
+      res.status(404).json({ error: 'ไม่พบพนักงาน' });
+      return;
+    }
+
+    const removed = db.employees.splice(empIndex, 1)[0];
+    db.leftQueue = db.leftQueue.filter((q) => q.employeeId !== id);
+    db.rightQueue = db.rightQueue.filter((q) => q.employeeId !== id);
+
+    addAuditLog({
+      action: 'EMPLOYEE_REMOVED',
+      employeeId: removed.id,
+      employeeName: removed.name,
+      machineId: machineId || 'PC_LEFT',
+      details: `ลบพนักงานออกจากระบบ: ${removed.name}`,
+    });
+
+    saveDatabase();
+    broadcastQueueState();
+
+    res.json({ success: true, removedEmployee: removed });
+  });
+
+  // API: Toggle Employee active status
+  app.post('/api/employees/:id/toggle-active', requireDeviceAuth, (req: Request, res: Response) => {
+    const { id } = req.params;
+    const emp = db.employees.find((e) => e.id === id);
+    if (!emp) {
+      res.status(404).json({ error: 'ไม่พบพนักงาน' });
+      return;
+    }
+
+    emp.active = !emp.active;
+    if (!emp.active) {
+      db.leftQueue = db.leftQueue.filter((q) => q.employeeId !== id);
+      db.rightQueue = db.rightQueue.filter((q) => q.employeeId !== id);
+    }
+
+    saveDatabase();
+    broadcastQueueState();
+
+    res.json({ success: true, employee: emp });
+  });
+
+  // API: Get Brands
+  app.get('/api/brands', requireDeviceAuth, (_req: Request, res: Response) => {
+    res.json({ brands: db.brands || [] });
+  });
+
+  // API: Add Brand
+  app.post('/api/brands', requireDeviceAuth, (req: Request, res: Response) => {
+    const { name, code, color } = req.body as { name: string; code?: string; color?: string };
+    if (!name || !name.trim()) {
+      res.status(400).json({ error: 'กรุณากรอกชื่อแบรนด์' });
+      return;
+    }
+    const brandCode = (code || name.slice(0, 3)).trim().toUpperCase();
+    const newBrand: BrandItem = {
+      id: 'brand_' + Date.now(),
+      name: name.trim(),
+      code: brandCode,
+      color: color || '#2563eb',
+    };
+    if (!db.brands) db.brands = [];
+    db.brands.push(newBrand);
+
+    saveDatabase();
+    broadcastQueueState();
+    res.json({ success: true, brand: newBrand });
+  });
+
+  // API: Update Brand
+  app.put('/api/brands/:id', requireDeviceAuth, (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { name, code, color } = req.body as { name?: string; code?: string; color?: string };
+    const brand = (db.brands || []).find((b) => b.id === id);
+    if (!brand) {
+      res.status(404).json({ error: 'ไม่พบแบรนด์' });
+      return;
+    }
+    const oldName = brand.name;
+    if (name) brand.name = name.trim();
+    if (code) brand.code = code.trim().toUpperCase();
+    if (color) brand.color = color;
+
+    // Sync to employees with this brand
+    db.employees.forEach((emp) => {
+      if (emp.brand === oldName) {
+        if (name) emp.brand = brand.name;
+        if (code) emp.brandCode = brand.code;
+      }
+    });
+    const syncQueueBrand = (queue: QueueEntry[]) => {
+      queue.forEach((q) => {
+        if (q.employeeBrand === oldName) {
+          if (name) q.employeeBrand = brand.name;
+          if (code) q.employeeBrandCode = brand.code;
+        }
+      });
+    };
+    syncQueueBrand(db.leftQueue);
+    syncQueueBrand(db.rightQueue);
+
+    saveDatabase();
+    broadcastQueueState();
+    res.json({ success: true, brand });
+  });
+
+  // API: Delete Brand
+  app.delete('/api/brands/:id', requireDeviceAuth, (req: Request, res: Response) => {
+    const { id } = req.params;
+    if (!db.brands) db.brands = [];
+    const idx = db.brands.findIndex((b) => b.id === id);
+    if (idx === -1) {
+      res.status(404).json({ error: 'ไม่พบแบรนด์' });
+      return;
+    }
+    const removed = db.brands.splice(idx, 1)[0];
+    saveDatabase();
+    broadcastQueueState();
+    res.json({ success: true, removedBrand: removed });
+  });
+
+  // API: Reset Mode 1 - Reset Queue Only
+  app.post('/api/queue/reset-queue', requireDeviceAuth, (req: Request, res: Response) => {
+    const { machineId } = req.body as { machineId: MachineId };
+
+    db.leftQueue = [];
+    db.rightQueue = [];
+    db.lastSwitch = null;
+    db.lastSwitchUndoSnapshot = null;
+    db.themeSwapped = false;
+
+    addAuditLog({
+      action: 'SYSTEM_RESET',
+      machineId: machineId || 'PC_LEFT',
+      details: '🧹 รีเซตคิวเฉยๆ (ล้างเฉพาะแถวคิวฝั่งซ้ายและขวา รายชื่อพนักงานและแบรนด์ยังคงเดิม)',
+    });
+
+    saveDatabase();
+    broadcastQueueState();
+
+    res.json({ success: true, message: 'รีเซ็ตคิวสำเร็จ' });
+  });
+
+  // API: Reset Mode 2 - Reset All Except Theme
+  app.post('/api/queue/reset-all-except-theme', requireDeviceAuth, (req: Request, res: Response) => {
+    const { machineId } = req.body as { machineId: MachineId };
+
+    db.leftQueue = [];
+    db.rightQueue = [];
+    db.lastSwitch = null;
+    db.lastSwitchUndoSnapshot = null;
+    db.themeSwapped = false;
+    db.employees = [];
+    db.brands = JSON.parse(JSON.stringify(DEFAULT_BRANDS));
+
+    addAuditLog({
+      action: 'SYSTEM_RESET',
+      machineId: machineId || 'PC_LEFT',
+      details: '⚠️ รีเซตระบบทั้งหมดยกเว้นธีม (ล้างพนักงานและคิวทั้งหมด ตั้งค่าเริ่มต้นแบรนด์ใหม่)',
+    });
+
+    saveDatabase();
+    broadcastQueueState();
+
+    res.json({ success: true, message: 'รีเซ็ตข้อมูลทั้งหมดยกเว้นธีมสำเร็จ' });
+  });
+
+  // API: Upload Avatar
+  app.post('/api/upload-avatar', requireDeviceAuth, (req: Request, res: Response) => {
+    const { imageBase64 } = req.body as { imageBase64: string };
+    if (!imageBase64 || typeof imageBase64 !== 'string') {
+      res.status(400).json({ error: 'กรุณาอัปโหลดรูปภาพ' });
+      return;
+    }
+    res.json({ success: true, avatarUrl: imageBase64 });
+  });
+
   // API: Server Time for precise clock sync
   app.get('/api/time', (_req: Request, res: Response) => {
     res.json({ serverTime: new Date().toISOString() });
@@ -1546,6 +1676,11 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // Background interval: Check every 30 seconds for automatic daily reset (midnight Bangkok time)
+  setInterval(() => {
+    checkAndPerformDailyReset('SCHEDULED_TIMER');
+  }, 30000);
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`PAINT QUEUE Server running on http://0.0.0.0:${PORT}`);
