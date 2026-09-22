@@ -103,12 +103,25 @@
   ],
   "leftQueue": [
     {
+      "id": "q_1790061374175_nrum",
+      "employeeId": "emp_04",
+      "employeeName": "กิตติพงษ์ (ดี)",
+      "employeeNickname": "D",
+      "employeeBrand": "Beger",
+      "employeeBrandCode": "BGR",
+      "employeeAvatarUrl": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=300&auto=format&fit=crop&q=80",
+      "employeeAvatarColor": "#0d9488",
+      "side": "LEFT",
+      "status": "NEXT",
+      "enteredAt": "2026-09-22T07:15:44.456Z"
+    },
+    {
       "id": "q_1790004041199_a97q",
       "employeeId": "emp_05",
       "employeeName": "ภัทรพล (อี)",
       "side": "LEFT",
-      "status": "NEXT",
-      "enteredAt": "2026-09-21T15:20:41.199Z",
+      "status": "WAITING",
+      "enteredAt": "2026-09-22T07:16:14.175Z",
       "employeeAvatarUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80",
       "employeeNickname": "E",
       "employeeAvatarColor": "#16a34a",
@@ -116,37 +129,33 @@
       "employeeBrandCode": "CPT"
     },
     {
-      "id": "q_1790004143260_r5iq",
-      "employeeId": "emp_06",
-      "employeeName": "อภิสิทธิ์ (เอฟ)",
+      "id": "q_1790061526406_hbh4",
+      "employeeId": "emp_10",
+      "employeeName": "วิรัช (เจ)",
+      "employeeNickname": "J",
+      "employeeBrand": "Pamapale",
+      "employeeBrandCode": "PMP",
+      "employeeAvatarUrl": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80",
+      "employeeAvatarColor": "#7c3aed",
       "side": "LEFT",
-      "status": "SERVING",
-      "enteredAt": "2026-09-21T15:22:23.260Z",
-      "employeeAvatarUrl": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80",
-      "employeeNickname": "F",
-      "employeeAvatarColor": "#059669",
-      "servedAt": "2026-09-21T15:26:57.145Z",
-      "servingMachineId": "PC_LEFT",
-      "employeeBrand": "Dulux",
-      "employeeBrandCode": "DLX"
+      "status": "WAITING",
+      "enteredAt": "2026-09-22T07:18:46.406Z"
     },
     {
-      "id": "q_1790004203264_zyli",
+      "id": "q_1790061527541_4mit",
       "employeeId": "emp_07",
       "employeeName": "ธนพร (จี)",
-      "side": "LEFT",
-      "status": "SERVING",
-      "enteredAt": "2026-09-21T15:23:23.264Z",
-      "employeeAvatarUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80",
       "employeeNickname": "G",
-      "employeeAvatarColor": "#65a30d",
-      "servedAt": "2026-09-21T15:27:05.352Z",
-      "servingMachineId": "PC_LEFT",
       "employeeBrand": "Nippon Paint",
-      "employeeBrandCode": "NPT"
+      "employeeBrandCode": "NPT",
+      "employeeAvatarUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80",
+      "employeeAvatarColor": "#65a30d",
+      "side": "LEFT",
+      "status": "WAITING",
+      "enteredAt": "2026-09-22T07:18:47.540Z"
     },
     {
-      "id": "q_1790005573728_j7fz",
+      "id": "q_1790061528914_54g1",
       "employeeId": "emp_08",
       "employeeName": "นพดล (เอช)",
       "employeeNickname": "H",
@@ -156,10 +165,10 @@
       "employeeAvatarColor": "#d97706",
       "side": "LEFT",
       "status": "WAITING",
-      "enteredAt": "2026-09-21T15:46:13.728Z"
+      "enteredAt": "2026-09-22T07:18:48.914Z"
     },
     {
-      "id": "q_1790005580604_mzoc",
+      "id": "q_1790061631840_8jmp",
       "employeeId": "emp_09",
       "employeeName": "สุภาภรณ์ (ไอ)",
       "employeeNickname": "I",
@@ -169,40 +178,10 @@
       "employeeAvatarColor": "#dc2626",
       "side": "LEFT",
       "status": "WAITING",
-      "enteredAt": "2026-09-21T15:46:20.604Z"
+      "enteredAt": "2026-09-22T07:20:31.840Z"
     }
   ],
   "rightQueue": [
-    {
-      "id": "q_1790003235478",
-      "employeeId": "emp_02",
-      "employeeName": "สมศักดิ์ (บี)",
-      "side": "RIGHT",
-      "status": "SERVING",
-      "enteredAt": "2026-09-21T15:07:15.478Z",
-      "employeeAvatarUrl": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=300&auto=format&fit=crop&q=80",
-      "employeeNickname": "B",
-      "employeeAvatarColor": "#0284c7",
-      "servedAt": "2026-09-21T15:34:31.848Z",
-      "servingMachineId": "PC_LEFT",
-      "employeeBrand": "TOA",
-      "employeeBrandCode": "TOA"
-    },
-    {
-      "id": "q_1790003265478",
-      "employeeId": "emp_03",
-      "employeeName": "วนิดา (ซี)",
-      "side": "RIGHT",
-      "status": "SERVING",
-      "enteredAt": "2026-09-21T15:07:45.478Z",
-      "employeeAvatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
-      "employeeNickname": "C",
-      "employeeAvatarColor": "#0891b2",
-      "servedAt": "2026-09-21T15:34:35.961Z",
-      "servingMachineId": "PC_LEFT",
-      "employeeBrand": "JBP",
-      "employeeBrandCode": "JBP"
-    },
     {
       "id": "q_1790003683031_21ye",
       "employeeId": "emp_01",
@@ -215,6 +194,32 @@
       "employeeAvatarColor": "#2563eb",
       "employeeBrand": "Nippon Paint",
       "employeeBrandCode": "NPT"
+    },
+    {
+      "id": "q_1790061644226_1gft",
+      "employeeId": "emp_03",
+      "employeeName": "วนิดา (ซี)",
+      "employeeNickname": "C",
+      "employeeBrand": "JBP",
+      "employeeBrandCode": "JBP",
+      "employeeAvatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
+      "employeeAvatarColor": "#0891b2",
+      "side": "RIGHT",
+      "status": "WAITING",
+      "enteredAt": "2026-09-22T07:20:44.226Z"
+    },
+    {
+      "id": "q_1790061645833_mwvs",
+      "employeeId": "emp_02",
+      "employeeName": "สมศักดิ์ (บี)",
+      "employeeNickname": "B",
+      "employeeBrand": "TOA",
+      "employeeBrandCode": "TOA",
+      "employeeAvatarUrl": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=300&auto=format&fit=crop&q=80",
+      "employeeAvatarColor": "#0284c7",
+      "side": "RIGHT",
+      "status": "WAITING",
+      "enteredAt": "2026-09-22T07:20:45.833Z"
     }
   ],
   "lastSwitch": {
@@ -287,6 +292,361 @@
     "timestamp": "2026-09-21T15:15:02.728Z"
   },
   "auditLogs": [
+    {
+      "action": "DEVICE_REGISTERED",
+      "machineId": "PC_LEFT",
+      "details": "🔑 ลงทะเบียนเครื่อง LEFT-02 (ฝั่ง LEFT) สำเร็จ ได้รับสิทธิ์ใช้งานระบบ Queue",
+      "id": "log_1790062051604_g5f3",
+      "timestamp": "2026-09-22T07:27:31.604Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062050477_22al",
+      "timestamp": "2026-09-22T07:27:30.477Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062047326_lws5",
+      "timestamp": "2026-09-22T07:27:27.326Z"
+    },
+    {
+      "action": "UNAUTHORIZED_API_REQUEST",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธคำขอ (403 ACCESS DENIED): GET /api/queue/state (IP: 127.0.0.1)",
+      "id": "log_1790062045562_v0uk",
+      "timestamp": "2026-09-22T07:27:25.562Z"
+    },
+    {
+      "action": "UNAUTHORIZED_API_REQUEST",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธคำขอ (403 ACCESS DENIED): GET /api/queue/state (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062044793_oaa9",
+      "timestamp": "2026-09-22T07:27:24.793Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062044160_9p5l",
+      "timestamp": "2026-09-22T07:27:24.160Z"
+    },
+    {
+      "action": "DEVICE_REVOKED",
+      "machineId": "PC_LEFT",
+      "details": "🚫 ถอนการอนุญาตเครื่อง LEFT-01 (ฝั่ง LEFT) แล้ว จะไม่สามารถเข้าถึงคิวได้อีก",
+      "id": "log_1790062041331_sj9o",
+      "timestamp": "2026-09-22T07:27:21.331Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062041010_kwkr",
+      "timestamp": "2026-09-22T07:27:21.010Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062037885_u98m",
+      "timestamp": "2026-09-22T07:27:17.885Z"
+    },
+    {
+      "action": "DEVICE_REGISTERED",
+      "machineId": "PC_RIGHT",
+      "details": "🔑 ลงทะเบียนเครื่อง RIGHT-01 (ฝั่ง RIGHT) สำเร็จ ได้รับสิทธิ์ใช้งานระบบ Queue",
+      "id": "log_1790062036256_ms4z",
+      "timestamp": "2026-09-22T07:27:16.256Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062034768_p71v",
+      "timestamp": "2026-09-22T07:27:14.768Z"
+    },
+    {
+      "action": "UNAUTHORIZED_API_REQUEST",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธคำขอ (403 ACCESS DENIED): GET /api/queue/state (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062034767_4wal",
+      "timestamp": "2026-09-22T07:27:14.767Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062031572_j7b5",
+      "timestamp": "2026-09-22T07:27:11.572Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062028395_d12w",
+      "timestamp": "2026-09-22T07:27:08.395Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062025218_prl7",
+      "timestamp": "2026-09-22T07:27:05.218Z"
+    },
+    {
+      "action": "UNAUTHORIZED_API_REQUEST",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธคำขอ (403 ACCESS DENIED): GET /api/queue/state (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062024720_34yl",
+      "timestamp": "2026-09-22T07:27:04.720Z"
+    },
+    {
+      "action": "UNAUTHORIZED_API_REQUEST",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธคำขอ (403 ACCESS DENIED): GET /api/queue/state (IP: 127.0.0.1)",
+      "id": "log_1790062024489_e2xa",
+      "timestamp": "2026-09-22T07:27:04.489Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062022092_v2rz",
+      "timestamp": "2026-09-22T07:27:02.092Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062018934_83z6",
+      "timestamp": "2026-09-22T07:26:58.934Z"
+    },
+    {
+      "action": "DEVICE_REGISTERED",
+      "machineId": "PC_LEFT",
+      "details": "🔑 ลงทะเบียนเครื่อง LEFT-01 (ฝั่ง LEFT) สำเร็จ ได้รับสิทธิ์ใช้งานระบบ Queue",
+      "id": "log_1790062015945_ez42",
+      "timestamp": "2026-09-22T07:26:55.945Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062015781_nrva",
+      "timestamp": "2026-09-22T07:26:55.781Z"
+    },
+    {
+      "action": "UNAUTHORIZED_API_REQUEST",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธคำขอ (403 ACCESS DENIED): GET /api/queue/state (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062014713_72no",
+      "timestamp": "2026-09-22T07:26:54.713Z"
+    },
+    {
+      "action": "DEVICE_AUTH_FAILED",
+      "machineId": "PC_LEFT",
+      "details": "พยายามลงทะเบียนเครื่องฝั่ง LEFT ด้วยรหัสไม่ถูกต้อง (IP: 127.0.0.1)",
+      "id": "log_1790062013788_akke",
+      "timestamp": "2026-09-22T07:26:53.788Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 2001:fb1:112:f69b:3f56:529b:874b:7c86, 169.254.169.126)",
+      "id": "log_1790062012654_86po",
+      "timestamp": "2026-09-22T07:26:52.654Z"
+    },
+    {
+      "action": "UNAUTHORIZED_ACCESS",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: 127.0.0.1)",
+      "id": "log_1790062008521_4ahf",
+      "timestamp": "2026-09-22T07:26:48.521Z"
+    },
+    {
+      "action": "UNAUTHORIZED_API_REQUEST",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธคำขอ (403 ACCESS DENIED): GET /api/queue/state (IP: 127.0.0.1)",
+      "id": "log_1790062004457_7bom",
+      "timestamp": "2026-09-22T07:26:44.457Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_02",
+      "employeeName": "สมศักดิ์ (บี)",
+      "side": "RIGHT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 946 นาที 14 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_1790061645833_shjf",
+      "timestamp": "2026-09-22T07:20:45.833Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_03",
+      "employeeName": "วนิดา (ซี)",
+      "side": "RIGHT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 946 นาที 8 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_1790061644226_fann",
+      "timestamp": "2026-09-22T07:20:44.226Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_09",
+      "employeeName": "สุภาภรณ์ (ไอ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 1 นาที 8 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_1790061631840_q0z5",
+      "timestamp": "2026-09-22T07:20:31.840Z"
+    },
+    {
+      "action": "MOVE_QUEUE",
+      "employeeId": "emp_04",
+      "employeeName": "กิตติพงษ์ (ดี)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "reason": "กดค้างแล้วลากเลื่อนคิว (Drag & Drop)",
+      "details": "เลื่อนลำดับคิวขึ้น: กิตติพงษ์ (ดี) จากลำดับ 02 ➔ 01 (สลับกับ ภัทรพล (อี))",
+      "id": "log_1790061619182_qxt3",
+      "timestamp": "2026-09-22T07:20:19.182Z"
+    },
+    {
+      "action": "REMOVE_QUEUE",
+      "employeeId": "emp_06",
+      "employeeName": "อภิสิทธิ์ (เอฟ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "reason": "ลงคิวผิด",
+      "details": "นำออกจากคิวฝั่ง LEFT (เหตุผล: ลงคิวผิด)",
+      "id": "log_1790061570747_epcd",
+      "timestamp": "2026-09-22T07:19:30.747Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_09",
+      "employeeName": "สุภาภรณ์ (ไอ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "🔥 ขึ้นคิวบริการลูกค้า (ฝั่ง LEFT)",
+      "id": "log_1790061563836_laoh",
+      "timestamp": "2026-09-22T07:19:23.836Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_08",
+      "employeeName": "นพดล (เอช)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 0 นาที 26 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_1790061528914_q5x3",
+      "timestamp": "2026-09-22T07:18:48.914Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_07",
+      "employeeName": "ธนพร (จี)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 0 นาที 22 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_1790061527541_waix",
+      "timestamp": "2026-09-22T07:18:47.541Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_10",
+      "employeeName": "วิรัช (เจ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 0 นาที 17 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_1790061526406_h2dx",
+      "timestamp": "2026-09-22T07:18:46.406Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_10",
+      "employeeName": "วิรัช (เจ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "🔥 ขึ้นคิวบริการลูกค้า (ฝั่ง LEFT)",
+      "id": "log_1790061509707_39up",
+      "timestamp": "2026-09-22T07:18:29.707Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_07",
+      "employeeName": "ธนพร (จี)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "🔥 ขึ้นคิวบริการลูกค้า (ฝั่ง LEFT)",
+      "id": "log_1790061505291_a4nm",
+      "timestamp": "2026-09-22T07:18:25.292Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_08",
+      "employeeName": "นพดล (เอช)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "🔥 ขึ้นคิวบริการลูกค้า (ฝั่ง LEFT)",
+      "id": "log_1790061502714_8jmg",
+      "timestamp": "2026-09-22T07:18:22.714Z"
+    },
+    {
+      "action": "MOVE_QUEUE",
+      "employeeId": "emp_05",
+      "employeeName": "ภัทรพล (อี)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "reason": "สลับลำดับตามข้อตกลง",
+      "details": "เลื่อนลำดับคิวลง: ภัทรพล (อี) จากลำดับ 01 ➔ 05 (สลับกับ นพดล (เอช))",
+      "id": "log_1790061414210_phr3",
+      "timestamp": "2026-09-22T07:16:54.210Z"
+    },
+    {
+      "action": "ENQUEUE",
+      "employeeId": "emp_10",
+      "employeeName": "วิรัช (เจ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "ลงคิวฝั่ง LEFT สำเร็จ",
+      "id": "log_1790061380100_l3xk",
+      "timestamp": "2026-09-22T07:16:20.100Z"
+    },
+    {
+      "action": "ENQUEUE",
+      "employeeId": "emp_04",
+      "employeeName": "กิตติพงษ์ (ดี)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "ลงคิวฝั่ง LEFT สำเร็จ",
+      "id": "log_1790061374175_15c4",
+      "timestamp": "2026-09-22T07:16:14.175Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_07",
+      "employeeName": "ธนพร (จี)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 948 นาที 39 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_1790061344456_w90t",
+      "timestamp": "2026-09-22T07:15:44.456Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_06",
+      "employeeName": "อภิสิทธิ์ (เอฟ)",
+      "side": "LEFT",
+      "machineId": "PC_LEFT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 948 นาที 46 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_1790061342800_bl8u",
+      "timestamp": "2026-09-22T07:15:42.800Z"
+    },
     {
       "action": "COMPLETE_SERVICE",
       "employeeId": "emp_01",
@@ -553,5 +913,6 @@
       "machineId": "PC_LEFT",
       "details": "เริ่มต้นระบบ PAINT QUEUE แผนกสี"
     }
-  ]
+  ],
+  "devices": []
 }

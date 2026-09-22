@@ -10,8 +10,9 @@ import {
   RotateCcw,
   Clock,
   BarChart2,
+  Shield,
 } from 'lucide-react';
-import { MachineId, Side, SideSwitchRecord } from '../types';
+import { AuthorizedDevice, MachineId, Side, SideSwitchRecord } from '../types';
 
 interface HeaderProps {
   machineId: MachineId | null;
@@ -25,6 +26,8 @@ interface HeaderProps {
   lastSwitch?: SideSwitchRecord | null;
   canUndoSwitch?: boolean;
   onUndoSwitch?: () => void;
+  authorizedDevice?: AuthorizedDevice | null;
+  onOpenDeviceManagement?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -39,6 +42,8 @@ export const Header: React.FC<HeaderProps> = ({
   lastSwitch,
   canUndoSwitch,
   onUndoSwitch,
+  authorizedDevice,
+  onOpenDeviceManagement,
 }) => {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
@@ -99,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+      <div className="max-w-7xl 2xl:max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
           {/* Brand & Machine Identity */}
           <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-start">
@@ -122,8 +127,8 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center gap-2">
               <button
                 id="machine-identity-badge-btn"
-                onClick={onOpenMachineSelect}
-                title="คลิกเพื่อเปลี่ยนฝั่งของเครื่องนี้"
+                onClick={onOpenDeviceManagement || onOpenMachineSelect}
+                title="คลิกเพื่อดูสถานะเครื่องและจัดการการเชื่อมต่อ (Device Management)"
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border font-semibold text-sm transition cursor-pointer ${
                   machineSide === 'LEFT'
                     ? 'bg-blue-950/80 border-blue-500 text-blue-300 hover:bg-blue-900 shadow-sm shadow-blue-500/20'
@@ -134,13 +139,17 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <Monitor className="w-4 h-4" />
                 <span>
-                  {machineSide === 'LEFT'
+                  {authorizedDevice?.deviceId
+                    ? `${machineSide === 'LEFT' ? '🟦' : '🟩'} ${authorizedDevice.deviceId}`
+                    : machineSide === 'LEFT'
                     ? '🟦 เครื่องฝั่ง LEFT (ซ้าย)'
                     : machineSide === 'RIGHT'
                     ? '🟩 เครื่องฝั่ง RIGHT (ขวา)'
                     : '⚠️ ยังไม่ได้เลือกฝั่ง'}
                 </span>
-                <span className="text-[10px] opacity-75 underline ml-1 hover:text-white">เปลี่ยน</span>
+                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950 border border-emerald-700/80 px-1.5 py-0.5 rounded ml-1">
+                  🟢 AUTHORIZED
+                </span>
               </button>
             </div>
           </div>
@@ -236,6 +245,19 @@ export const Header: React.FC<HeaderProps> = ({
               <Users className="w-4 h-4 text-slate-400" />
               <span className="hidden sm:inline">พนักงาน</span>
             </button>
+
+            {/* Device Management Button */}
+            {onOpenDeviceManagement && (
+              <button
+                id="header-device-mgmt-btn"
+                onClick={onOpenDeviceManagement}
+                className="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 font-medium px-3 py-2.5 rounded-xl transition text-xs cursor-pointer"
+                title="จัดการเครื่อง / ถอนการจับคู่ (Device Management)"
+              >
+                <Shield className="w-4 h-4 text-emerald-400" />
+                <span className="hidden sm:inline">จัดการเครื่อง</span>
+              </button>
+            )}
           </div>
         </div>
 

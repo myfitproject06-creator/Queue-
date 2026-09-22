@@ -1,9 +1,12 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
+import cookieParser from 'cookie-parser';
 import { createServer as createViteServer } from 'vite';
 import {
   AuditLogEntry,
+  AuthorizedDevice,
   Employee,
   MachineId,
   QueueEntry,
@@ -14,6 +17,11 @@ import {
 const PORT = 3000;
 const DB_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DB_DIR, 'queue_db.json');
+const SETUP_PAIRING_CODE = process.env.SETUP_PAIRING_CODE || 'PQ-CENTRAL-2026';
+
+export interface StoredDeviceRecord extends AuthorizedDevice {
+  tokenHash: string; // SHA-256 hash of device token
+}
 
 interface DatabaseSchema {
   employees: Employee[];
@@ -26,6 +34,7 @@ interface DatabaseSchema {
     timestamp: string;
   } | null;
   auditLogs: AuditLogEntry[];
+  devices: StoredDeviceRecord[];
 }
 
 const DEFAULT_EMPLOYEES: Employee[] = [
@@ -241,6 +250,7 @@ function getInitialState(): DatabaseSchema {
         details: 'เริ่มต้นระบบ PAINT QUEUE แผนกสี',
       },
     ],
+    devices: [],
   };
 }
 
@@ -309,6 +319,11 @@ function initDatabase() {
 
       db.leftQueue = fillQueueFields(db.leftQueue);
       db.rightQueue = fillQueueFields(db.rightQueue);
+
+      if (!Array.isArray(db.devices)) {
+        db.devices = [];
+        modified = true;
+      }
 
       if (modified) {
         saveDatabase();
@@ -399,15 +414,122 @@ function addAuditLog(entry: Omit<AuditLogEntry, 'id' | 'timestamp'>) {
   return log;
 }
 
+// Cryptographic token hashing and verification
+function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token.trim()).digest('hex');
+}
+
+// Extract and verify authorized device from incoming request
+function getDeviceFromRequest(req: Request): StoredDeviceRecord | null {
+  let rawToken: string | undefined;
+
+  const headerToken = req.headers['x-device-token'];
+  if (typeof headerToken === 'string' && headerToken.trim()) {
+    rawToken = headerToken.trim();
+  } else if (req.headers['authorization']?.startsWith('Bearer ')) {
+    rawToken = req.headers['authorization'].slice(7).trim();
+  } else if (req.cookies?.paint_queue_device_token) {
+    rawToken = String(req.cookies.paint_queue_device_token).trim();
+  } else if (typeof req.query.device_token === 'string' && req.query.device_token.trim()) {
+    rawToken = req.query.device_token.trim();
+  }
+
+  if (!rawToken) {
+    return null;
+  }
+
+  const tokenHash = hashToken(rawToken);
+  const device = db.devices.find(
+    (d) => d.tokenHash === tokenHash && d.status === 'AUTHORIZED'
+  );
+
+  if (device) {
+    device.lastSeenAt = new Date().toISOString();
+    return device;
+  }
+
+  return null;
+}
+
+// Backend Middleware: Enforce Device Authorization for all sensitive queue routes
+function requireDeviceAuth(req: Request, res: Response, next: NextFunction) {
+  const device = getDeviceFromRequest(req);
+  if (!device) {
+    const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown';
+    addAuditLog({
+      action: 'UNAUTHORIZED_API_REQUEST',
+      machineId: 'PC_LEFT',
+      details: `ปฏิเสธคำขอ (403 ACCESS DENIED): ${req.method} ${req.originalUrl || req.path} (IP: ${clientIp})`,
+    });
+    res.status(403).json({
+      error: 'ACCESS_DENIED',
+      message: 'อุปกรณ์นี้ไม่ได้รับอนุญาตให้ใช้งานหรือแก้ไขระบบ PAINT QUEUE',
+    });
+    return;
+  }
+
+  (req as any).authorizedDevice = device;
+  next();
+}
+
+// Helper: Enforce that an authorized device can ONLY modify its OWN side.
+// Opposite side is strictly READ-ONLY.
+function checkDeviceSidePermission(
+  req: Request,
+  res: Response,
+  targetSide: Side
+): boolean {
+  const device = (req as any).authorizedDevice as StoredDeviceRecord | undefined;
+  if (!device) {
+    res.status(403).json({
+      error: 'ACCESS_DENIED',
+      message: 'อุปกรณ์นี้ไม่ได้รับอนุญาตให้ใช้งานระบบ PAINT QUEUE',
+    });
+    return false;
+  }
+
+  if (device.side !== targetSide) {
+    const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown';
+    addAuditLog({
+      action: 'UNAUTHORIZED_API_REQUEST',
+      machineId: device.side === 'LEFT' ? 'PC_LEFT' : 'PC_RIGHT',
+      details: `🛡️ ปฏิเสธคำขอแก้ไขข้ามฝั่ง (403 FORBIDDEN): เครื่อง ${device.deviceId} (ฝั่ง ${device.side}) พยายามแก้ไขคิวฝั่ง ${targetSide} (IP: ${clientIp})`,
+    });
+    res.status(403).json({
+      error: 'FORBIDDEN_OPPOSITE_SIDE',
+      message: `เครื่อง ${device.deviceId} (ฝั่ง ${device.side}) ไม่มีสิทธิ์แก้ไขคิวฝั่ง ${targetSide} (อนุญาตเฉพาะฝั่งตัวเองเท่านั้น ฝั่งตรงข้ามดูได้อย่างเดียว)`,
+    });
+    return false;
+  }
+
+  return true;
+}
+
 async function startServer() {
   initDatabase();
   recomputeQueues();
 
   const app = express();
   app.use(express.json());
+  app.use(cookieParser());
 
-  // SSE Real-time Endpoint
+  // SSE Real-time Endpoint (Protected: Only Authorized Central Machines receive queue stream)
   app.get('/api/queue/stream', (req: Request, res: Response) => {
+    const device = getDeviceFromRequest(req);
+    if (!device) {
+      const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown';
+      addAuditLog({
+        action: 'UNAUTHORIZED_ACCESS',
+        machineId: 'PC_LEFT',
+        details: `ปฏิเสธการเชื่อมต่อ Realtime Stream (403 ACCESS DENIED): อุปกรณ์ไม่ได้รับอนุญาต (IP: ${clientIp})`,
+      });
+      res.status(403).json({
+        error: 'ACCESS_DENIED',
+        message: 'อุปกรณ์นี้ไม่ได้รับอนุญาตให้รับ Realtime Stream ข้อมูล Queue',
+      });
+      return;
+    }
+
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -418,13 +540,18 @@ async function startServer() {
     sseClients.add(res);
     recomputeQueues();
 
-    // Send initial snapshot
+    // Send initial snapshot with authorized device info
     const initialData = {
       leftQueue: db.leftQueue,
       rightQueue: db.rightQueue,
       lastSwitch: db.lastSwitch,
       serverTime: new Date().toISOString(),
       employees: db.employees,
+      device: {
+        deviceId: device.deviceId,
+        side: device.side,
+        status: device.status,
+      },
     };
     res.write(`event: INIT\ndata: ${JSON.stringify(initialData)}\n\n`);
 
@@ -444,8 +571,207 @@ async function startServer() {
     }
   }, 15000);
 
-  // API: Get current queue state
-  app.get('/api/queue/state', (_req: Request, res: Response) => {
+  // =========================================================================
+  // DEVICE AUTHORIZATION & SECURITY APIS
+  // =========================================================================
+
+  // API: Get current device authorization status & registration slots
+  app.get('/api/auth/status', (req: Request, res: Response) => {
+    const currentDevice = getDeviceFromRequest(req);
+
+    const leftDevice = db.devices.find(
+      (d) => d.side === 'LEFT' && d.status === 'AUTHORIZED'
+    );
+    const rightDevice = db.devices.find(
+      (d) => d.side === 'RIGHT' && d.status === 'AUTHORIZED'
+    );
+
+    res.json({
+      authorized: !!currentDevice,
+      device: currentDevice
+        ? {
+            id: currentDevice.id,
+            deviceId: currentDevice.deviceId,
+            side: currentDevice.side,
+            status: currentDevice.status,
+            createdAt: currentDevice.createdAt,
+            lastSeenAt: currentDevice.lastSeenAt,
+          }
+        : null,
+      registeredDevices: [
+        {
+          side: 'LEFT' as Side,
+          deviceId: leftDevice?.deviceId,
+          status: (leftDevice ? 'AUTHORIZED' : 'NOT_REGISTERED') as 'AUTHORIZED' | 'NOT_REGISTERED',
+          lastSeenAt: leftDevice?.lastSeenAt,
+        },
+        {
+          side: 'RIGHT' as Side,
+          deviceId: rightDevice?.deviceId,
+          status: (rightDevice ? 'AUTHORIZED' : 'NOT_REGISTERED') as 'AUTHORIZED' | 'NOT_REGISTERED',
+          lastSeenAt: rightDevice?.lastSeenAt,
+        },
+      ],
+      pairingCodeHint: 'รหัสติดตั้งสำหรับแอดมินหรือช่างประจำแผนก',
+    });
+  });
+
+  // API: Pair/Register a central machine (Requires Admin Setup Pairing Code)
+  app.post('/api/auth/pair-device', (req: Request, res: Response) => {
+    const { side, pairingCode } = req.body as {
+      side: Side;
+      pairingCode: string;
+    };
+
+    const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown';
+
+    if (!side || !pairingCode) {
+      res.status(400).json({ error: 'กรุณาระบุฝั่งของเครื่อง (side) และรหัส Pairing Code' });
+      return;
+    }
+
+    if (side !== 'LEFT' && side !== 'RIGHT') {
+      res.status(400).json({ error: 'ฝั่งของเครื่องต้องเป็น LEFT หรือ RIGHT เท่านั้น' });
+      return;
+    }
+
+    // Verify Master Setup Pairing Code
+    if (pairingCode.trim() !== SETUP_PAIRING_CODE) {
+      addAuditLog({
+        action: 'DEVICE_AUTH_FAILED',
+        machineId: side === 'LEFT' ? 'PC_LEFT' : 'PC_RIGHT',
+        details: `พยายามลงทะเบียนเครื่องฝั่ง ${side} ด้วยรหัสไม่ถูกต้อง (IP: ${clientIp})`,
+      });
+      res.status(401).json({ error: 'รหัส Pairing Code ไม่ถูกต้อง กรุณาติดต่อผู้ดูแลระบบ' });
+      return;
+    }
+
+    // Check if an authorized machine is already active for this side
+    const existingActive = db.devices.find(
+      (d) => d.side === side && d.status === 'AUTHORIZED'
+    );
+
+    if (existingActive) {
+      res.status(400).json({
+        error: `ฝั่ง ${side} มีเครื่องกลางที่ลงทะเบียนอยู่แล้ว (${existingActive.deviceId}) ไม่อนุญาตให้ลงทะเบียนเครื่องซ้ำซ้อน หากเปลี่ยนเครื่องกรุณา Revoke เครื่องเดิมก่อน`,
+      });
+      return;
+    }
+
+    // Generate next device ID for this side (e.g. LEFT-01, LEFT-02)
+    const sideHistoryCount = db.devices.filter((d) => d.side === side).length;
+    const nextSeq = String(sideHistoryCount + 1).padStart(2, '0');
+    const deviceId = `${side}-${nextSeq}`;
+
+    // Cryptographically secure token
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashToken(rawToken);
+
+    const nowIso = new Date().toISOString();
+    const newDevice: StoredDeviceRecord = {
+      id: 'dev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      deviceId,
+      side,
+      tokenHash,
+      status: 'AUTHORIZED',
+      createdAt: nowIso,
+      lastSeenAt: nowIso,
+      userAgent: (req.headers['user-agent'] as string) || 'unknown',
+      ip: clientIp,
+    };
+
+    db.devices.push(newDevice);
+
+    addAuditLog({
+      action: 'DEVICE_REGISTERED',
+      machineId: side === 'LEFT' ? 'PC_LEFT' : 'PC_RIGHT',
+      details: `🔑 ลงทะเบียนเครื่อง ${deviceId} (ฝั่ง ${side}) สำเร็จ ได้รับสิทธิ์ใช้งานระบบ Queue`,
+    });
+
+    saveDatabase();
+
+    // Set secure HttpOnly cookie
+    res.cookie('paint_queue_device_token', rawToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 365 * 24 * 3600 * 1000,
+      path: '/',
+    });
+
+    res.json({
+      success: true,
+      message: `ลงทะเบียนเครื่อง ${deviceId} เรียบร้อยแล้ว`,
+      device: {
+        id: newDevice.id,
+        deviceId: newDevice.deviceId,
+        side: newDevice.side,
+        status: newDevice.status,
+        createdAt: newDevice.createdAt,
+        lastSeenAt: newDevice.lastSeenAt,
+      },
+      token: rawToken,
+    });
+  });
+
+  // API: Revoke machine authorization (For machine replacement or security revocation)
+  app.post('/api/auth/revoke-device', (req: Request, res: Response) => {
+    const { deviceId, pairingCode } = req.body as {
+      deviceId: string;
+      pairingCode: string;
+    };
+
+    const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown';
+
+    if (!deviceId || !pairingCode) {
+      res.status(400).json({ error: 'กรุณาระบุ Device ID และรหัสยืนยัน Pairing Code' });
+      return;
+    }
+
+    if (pairingCode.trim() !== SETUP_PAIRING_CODE) {
+      res.status(401).json({ error: 'รหัส Pairing Code ไม่ถูกต้อง ไม่สามารถถอนการอนุญาตได้' });
+      return;
+    }
+
+    const device = db.devices.find((d) => d.deviceId === deviceId);
+    if (!device) {
+      res.status(404).json({ error: 'ไม่พบ Device ID นี้ในระบบ' });
+      return;
+    }
+
+    if (device.status === 'REVOKED') {
+      res.status(400).json({ error: `เครื่อง ${deviceId} ถูกถอนการอนุญาตไปแล้วก่อนหน้านี้` });
+      return;
+    }
+
+    device.status = 'REVOKED';
+    device.revokedAt = new Date().toISOString();
+
+    addAuditLog({
+      action: 'DEVICE_REVOKED',
+      machineId: device.side === 'LEFT' ? 'PC_LEFT' : 'PC_RIGHT',
+      details: `🚫 ถอนการอนุญาตเครื่อง ${device.deviceId} (ฝั่ง ${device.side}) แล้ว จะไม่สามารถเข้าถึงคิวได้อีก`,
+    });
+
+    saveDatabase();
+
+    // Check if current caller is this device, clear cookie
+    const currentDevice = getDeviceFromRequest(req);
+    if (currentDevice?.deviceId === deviceId) {
+      res.clearCookie('paint_queue_device_token', { path: '/' });
+    }
+
+    // Broadcast REVOCATION to all SSE clients so any browser open with this device gets invalidated
+    broadcast('DEVICE_REVOKED', { deviceId });
+
+    res.json({
+      success: true,
+      message: `ถอนการอนุญาตเครื่อง ${deviceId} สำเร็จ เครื่องนี้จะไม่สามารถใช้งาน Queue ได้อีก สามารถ Pair เครื่องใหม่ได้แล้ว`,
+    });
+  });
+
+  // API: Get current queue state (Protected: Unauthorized devices get 403 Forbidden)
+  app.get('/api/queue/state', requireDeviceAuth, (_req: Request, res: Response) => {
     recomputeQueues();
     res.json({
       leftQueue: db.leftQueue,
@@ -463,7 +789,7 @@ async function startServer() {
   // API: Add to Queue (+ ลงคิว)
   // Rule 2 & 3: Authoritative timestamp, strictly sorted by time entered
   // Prevent duplicate queueing
-  app.post('/api/queue/add', (req: Request, res: Response) => {
+  app.post('/api/queue/add', requireDeviceAuth, (req: Request, res: Response) => {
     const { employeeId, side, machineId } = req.body as {
       employeeId: string;
       side: Side;
@@ -472,6 +798,11 @@ async function startServer() {
 
     if (!employeeId || !side || !machineId) {
       res.status(400).json({ error: 'Missing required parameters (employeeId, side, machineId)' });
+      return;
+    }
+
+    // Backend Enforcement: Machine can only modify its own side
+    if (!checkDeviceSidePermission(req, res, side)) {
       return;
     }
 
@@ -532,7 +863,7 @@ async function startServer() {
   // MULTI-SERVING: Multiple employees can serve customers concurrently!
   // When employee clicks "ขึ้นคิว", they move to the SERVING pool.
   // The waiting queue advances so the next person can also serve if another customer arrives.
-  app.post('/api/queue/serve', (req: Request, res: Response) => {
+  app.post('/api/queue/serve', requireDeviceAuth, (req: Request, res: Response) => {
     const { entryId, machineId } = req.body as {
       entryId: string;
       machineId: MachineId;
@@ -555,6 +886,11 @@ async function startServer() {
     }
 
     const entry = targetQueue.find((q) => q.id === entryId)!;
+
+    // Backend Enforcement: Machine can only modify its own side
+    if (!checkDeviceSidePermission(req, res, entry.side)) {
+      return;
+    }
 
     const nowIso = new Date().toISOString();
     entry.status = 'SERVING';
@@ -583,7 +919,7 @@ async function startServer() {
   // When employee finishes serving, they click "จบคิว".
   // The system automatically removes them from "กำลังติดลูกค้า"
   // and re-queues them at the TAIL of the waiting queue on their current side!
-  app.post('/api/queue/complete', (req: Request, res: Response) => {
+  app.post('/api/queue/complete', requireDeviceAuth, (req: Request, res: Response) => {
     const { entryId, machineId } = req.body as {
       entryId: string;
       machineId: MachineId;
@@ -599,6 +935,12 @@ async function startServer() {
 
     if (!isLeft && !isRight) {
       res.status(404).json({ error: 'ไม่พบคิวนี้ในระบบ' });
+      return;
+    }
+
+    const entrySide: Side = isLeft ? 'LEFT' : 'RIGHT';
+    // Backend Enforcement: Machine can only modify its own side
+    if (!checkDeviceSidePermission(req, res, entrySide)) {
       return;
     }
 
@@ -655,7 +997,7 @@ async function startServer() {
 
   // API: Remove from Queue (❌ เอาออกจากคิว)
   // Rule 6, 7, 8: Instant removal from active queue, quick reason preserved in audit log
-  app.post('/api/queue/remove', (req: Request, res: Response) => {
+  app.post('/api/queue/remove', requireDeviceAuth, (req: Request, res: Response) => {
     const { entryId, reasonKey, reasonText, machineId } = req.body as {
       entryId: string;
       reasonKey: string;
@@ -673,6 +1015,12 @@ async function startServer() {
 
     if (!isLeft && !isRight) {
       res.status(404).json({ error: 'ไม่พบคิวนี้ในระบบ' });
+      return;
+    }
+
+    const entrySide: Side = isLeft ? 'LEFT' : 'RIGHT';
+    // Backend Enforcement: Machine can only modify its own side
+    if (!checkDeviceSidePermission(req, res, entrySide)) {
       return;
     }
 
@@ -701,7 +1049,7 @@ async function startServer() {
   });
 
   // API: Move / Reorder Queue Position (↕️ เลื่อนลำดับคิว กรณีลำดับคิวผิด)
-  app.post('/api/queue/move', (req: Request, res: Response) => {
+  app.post('/api/queue/move', requireDeviceAuth, (req: Request, res: Response) => {
     const { entryId, direction, targetRank, reason, machineId } = req.body as {
       entryId: string;
       direction?: 'UP' | 'DOWN';
@@ -720,6 +1068,12 @@ async function startServer() {
 
     if (!isLeft && !isRight) {
       res.status(404).json({ error: 'ไม่พบคิวนี้ในระบบ' });
+      return;
+    }
+
+    const entrySide: Side = isLeft ? 'LEFT' : 'RIGHT';
+    // Backend Enforcement: Machine can only modify its own side
+    if (!checkDeviceSidePermission(req, res, entrySide)) {
       return;
     }
 
@@ -822,7 +1176,7 @@ async function startServer() {
   // Rule 10, 11, 12, 13, 14, 16:
   // Atomic, preserves relative queue order, protects against rapid double-clicks
   // Preserves active customer serving session!
-  app.post('/api/queue/switch-sides', (req: Request, res: Response) => {
+  app.post('/api/queue/switch-sides', requireDeviceAuth, (req: Request, res: Response) => {
     const { machineId } = req.body as { machineId: MachineId };
 
     if (!machineId) {
@@ -895,7 +1249,7 @@ async function startServer() {
   });
 
   // API: Undo Last Switch
-  app.post('/api/queue/undo-switch', (req: Request, res: Response) => {
+  app.post('/api/queue/undo-switch', requireDeviceAuth, (req: Request, res: Response) => {
     const { machineId } = req.body as { machineId: MachineId };
 
     if (!db.lastSwitchUndoSnapshot) {
@@ -928,7 +1282,7 @@ async function startServer() {
   });
 
   // API: Get Audit Logs with search & date filtering
-  app.get('/api/audit-logs', (req: Request, res: Response) => {
+  app.get('/api/audit-logs', requireDeviceAuth, (req: Request, res: Response) => {
     const { date, employeeName, action, limit } = req.query as {
       date?: string;
       employeeName?: string;
@@ -961,7 +1315,7 @@ async function startServer() {
   });
 
   // API: Get Handled Items Stats per Employee Today
-  app.get('/api/stats/handled-today', (req: Request, res: Response) => {
+  app.get('/api/stats/handled-today', requireDeviceAuth, (req: Request, res: Response) => {
     const targetDate =
       (req.query.date as string) || new Date().toISOString().split('T')[0];
 
@@ -1079,11 +1433,11 @@ async function startServer() {
   });
 
   // API: Get & Add Employees
-  app.get('/api/employees', (_req: Request, res: Response) => {
+  app.get('/api/employees', requireDeviceAuth, (_req: Request, res: Response) => {
     res.json({ employees: db.employees });
   });
 
-  app.post('/api/employees', (req: Request, res: Response) => {
+  app.post('/api/employees', requireDeviceAuth, (req: Request, res: Response) => {
     const { name, nickname, brand, brandCode, avatarUrl, machineId } = req.body as {
       name: string;
       nickname?: string;
@@ -1129,7 +1483,7 @@ async function startServer() {
   });
 
   // API: Update Employee (e.g. change avatar picture, nickname, brand, brandCode)
-  app.post('/api/employees/:id/update', (req: Request, res: Response) => {
+  app.post('/api/employees/:id/update', requireDeviceAuth, (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, nickname, brand, brandCode, avatarUrl, machineId } = req.body as {
       name?: string;

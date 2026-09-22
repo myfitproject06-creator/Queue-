@@ -56,7 +56,36 @@ export type AuditActionType =
   | 'UNDO_SWITCH'
   | 'REJOIN_QUEUE'
   | 'EMPLOYEE_ADDED'
-  | 'SYSTEM_RESET';
+  | 'SYSTEM_RESET'
+  | 'DEVICE_REGISTERED'
+  | 'DEVICE_REVOKED'
+  | 'UNAUTHORIZED_ACCESS'
+  | 'UNAUTHORIZED_API_REQUEST'
+  | 'DEVICE_AUTH_FAILED';
+
+export interface AuthorizedDevice {
+  id: string;
+  deviceId: string; // e.g. 'LEFT-01', 'RIGHT-01'
+  side: Side;
+  status: 'AUTHORIZED' | 'REVOKED';
+  createdAt: string; // ISO
+  lastSeenAt: string; // ISO
+  revokedAt?: string; // ISO
+  userAgent?: string;
+  ip?: string;
+}
+
+export interface DeviceAuthStatusResponse {
+  authorized: boolean;
+  device?: AuthorizedDevice | null;
+  registeredDevices: {
+    side: Side;
+    deviceId?: string;
+    status: 'AUTHORIZED' | 'REVOKED' | 'NOT_REGISTERED';
+    lastSeenAt?: string;
+  }[];
+  pairingCodeHint?: string;
+}
 
 export interface AuditLogEntry {
   id: string;

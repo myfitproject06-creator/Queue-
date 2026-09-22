@@ -25,6 +25,7 @@ import {
   LabelList,
 } from 'recharts';
 import { EmployeeHandledStats, HandledTodayStatsResponse } from '../types';
+import { fetchWithAuth } from '../api';
 
 interface ItemsHandledTodayModalProps {
   isOpen: boolean;
@@ -53,7 +54,7 @@ export const ItemsHandledTodayModal: React.FC<ItemsHandledTodayModalProps> = ({
     setError(null);
     try {
       const dateToFetch = dateStr || selectedDate;
-      const res = await fetch(`/api/stats/handled-today?date=${encodeURIComponent(dateToFetch)}`);
+      const res = await fetchWithAuth(`/api/stats/handled-today?date=${encodeURIComponent(dateToFetch)}`);
       if (!res.ok) {
         throw new Error('ไม่สามารถโหลดข้อมูลสถิติได้');
       }

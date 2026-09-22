@@ -15,6 +15,9 @@ import {
   ChevronDown,
   ArrowUpDown,
   GripVertical,
+  Monitor,
+  Lock,
+  Eye,
 } from 'lucide-react';
 import { QueueEntry, Side, MachineId } from '../types';
 
@@ -47,6 +50,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
 }) => {
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+  const [desktopViewMode, setDesktopViewMode] = useState<'CURRENT' | 'OPPOSITE' | 'DUAL'>('CURRENT');
 
   // Drag-and-drop reordering state (กดค้างแล้วลาก)
   const [draggedEntryId, setDraggedEntryId] = useState<string | null>(null);
@@ -83,6 +87,8 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
     side: Side,
     targetRank: number
   ) => {
+    // Guard: Only allow reordering on own side and not in DUAL view
+    if (desktopViewMode === 'DUAL' || side !== machineSide) return;
     if (!onDragReorderQueue || isReordering) return;
     const targetQueue = side === 'LEFT' ? leftQueue : rightQueue;
     const waiting = targetQueue.filter((q) => q.status !== 'SERVING');
@@ -203,6 +209,8 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
     const isLeft = side === 'LEFT';
     const isCurrentMachineSide =
       (machineId === 'PC_LEFT' && isLeft) || (machineId === 'PC_RIGHT' && !isLeft);
+    // Strict Scope: Only the machine's assigned side is editable. Opposite side and Dual Side are strictly Read-Only.
+    const isSideEditable = desktopViewMode !== 'DUAL' && side === machineSide;
 
     // Strictly separate SERVING vs WAITING
     const servingEntries = queue.filter((q) => q.status === 'SERVING');
@@ -236,7 +244,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
               {isLeft ? '🟦' : '🟩'}
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2
                   className={`text-xl font-black tracking-tight ${
                     isLeft ? 'text-blue-300' : 'text-emerald-300'
@@ -244,7 +252,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                 >
                   {title}
                 </h2>
-                {isCurrentMachineSide && (
+                {isSideEditable ? (
                   <span
                     className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
                       isLeft
@@ -252,7 +260,12 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                         : 'bg-emerald-500/25 text-emerald-300 border-emerald-500/40'
                     }`}
                   >
-                    เครื่องนี้
+                    เครื่องนี้ (แก้ไขได้)
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-950/90 text-amber-300 border border-amber-500/50 flex items-center gap-1 shadow-sm">
+                    <Lock className="w-3 h-3 text-amber-400" />
+                    <span>ดูอย่างเดียว (READ ONLY)</span>
                   </span>
                 )}
               </div>
@@ -272,19 +285,30 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
             </div>
           </div>
 
-          {/* Quick Enqueue Button */}
-          <button
-            id={`btn-add-queue-${side.toLowerCase()}`}
-            onClick={() => onOpenAddQueue(side)}
-            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm shadow-lg active:scale-95 transition cursor-pointer ${
-              isLeft
-                ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
-            }`}
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ ลงคิวฝั่ง {side}</span>
-          </button>
+          {/* Quick Enqueue Button or Read-Only Notice */}
+          {isSideEditable ? (
+            <button
+              id={`btn-add-queue-${side.toLowerCase()}`}
+              onClick={() => onOpenAddQueue(side)}
+              className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm shadow-lg active:scale-95 transition cursor-pointer ${
+                isLeft
+                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+              }`}
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ ลงคิวฝั่ง {side}</span>
+            </button>
+          ) : (
+            <div
+              id={`badge-readonly-${side.toLowerCase()}`}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-950/80 border border-amber-500/40 text-amber-300 text-xs font-bold select-none shadow-sm"
+              title="ฝั่งนี้เป็นโหมดดูอย่างเดียว ไม่สามารถแก้ไขได้จากเครื่องนี้"
+            >
+              <Eye className="w-3.5 h-3.5 text-amber-400" />
+              <span>โหมดดูอย่างเดียว (Read Only)</span>
+            </div>
+          )}
         </div>
 
         <div className="p-4 sm:p-5 flex-1 flex flex-col gap-4 overflow-y-auto">
@@ -312,13 +336,20 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                     </h3>
                   </div>
                 </div>
-                <p className="text-xs text-slate-400 font-medium hidden sm:inline">
-                  กด <span className="text-emerald-400 font-bold">"✓ จบคิว"</span> เมื่อเสร็จเพื่อกลับไปต่อท้ายแถวอัตโนมัติ
-                </p>
+                {isSideEditable ? (
+                  <p className="text-xs text-slate-400 font-medium hidden sm:inline">
+                    กด <span className="text-emerald-400 font-bold">"✓ จบคิว"</span> เมื่อเสร็จเพื่อกลับไปต่อท้ายแถวอัตโนมัติ
+                  </p>
+                ) : (
+                  <p className="text-xs text-amber-400/90 font-medium flex items-center gap-1">
+                    <Lock className="w-3.5 h-3.5 text-amber-400" />
+                    <span>โหมดดูอย่างเดียว (เครื่องฝั่ง {side} เป็นผู้จัดการคิว)</span>
+                  </p>
+                )}
               </div>
 
               {/* Large Square Serving Cards: Arranged Horizontally */}
-              <div className="flex flex-wrap gap-4 items-stretch overflow-x-auto pb-1 pt-1">
+              <div className="flex flex-wrap gap-4 lg:gap-5 items-stretch overflow-x-auto pb-1.5 pt-1">
                 {servingEntries.map((entry) => {
                   const timerText = formatElapsedTimer(entry.servedAt);
                   const enteredTime = entry.servedAt
@@ -332,10 +363,10 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                     <div
                       key={entry.id}
                       id={`serving-card-${entry.id}`}
-                      className="group relative w-56 sm:w-64 rounded-2xl border-2 border-orange-500/60 bg-gradient-to-b from-slate-900 via-orange-950/25 to-slate-950 p-4 shadow-xl shadow-orange-950/40 ring-1 ring-orange-400/30 hover:border-orange-400 transition-all flex flex-col items-center justify-between text-center flex-shrink-0"
+                      className="group relative w-60 sm:w-64 lg:w-72 xl:w-80 rounded-2xl border-2 border-orange-500/60 bg-gradient-to-b from-slate-900 via-orange-950/25 to-slate-950 p-4 lg:p-5 shadow-xl shadow-orange-950/40 ring-1 ring-orange-400/30 hover:border-orange-400 transition-all flex flex-col items-center justify-between text-center flex-shrink-0"
                     >
                       {/* Top Fire Indicator Badge */}
-                      <div className="absolute -top-3 bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black text-[11px] px-3 py-0.5 rounded-full shadow-md flex items-center gap-1 uppercase tracking-wider">
+                      <div className="absolute -top-3 bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black text-[11px] lg:text-xs px-3.5 py-0.5 rounded-full shadow-md flex items-center gap-1 uppercase tracking-wider">
                         <Flame className="w-3.5 h-3.5 fill-slate-950" />
                         <span>กำลังติดลูกค้า</span>
                       </div>
@@ -346,7 +377,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                           <img
                             src={entry.employeeAvatarUrl}
                             alt={entry.employeeName}
-                            className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl object-cover border-2 border-orange-400 shadow-xl shadow-black/70 group-hover:scale-105 transition duration-200"
+                            className="w-36 h-36 sm:w-40 sm:h-40 lg:w-44 lg:h-44 xl:w-48 xl:h-48 rounded-2xl object-cover border-2 border-orange-400 shadow-xl shadow-black/70 group-hover:scale-105 transition duration-200"
                             onError={(e) => {
                               (e.target as HTMLElement).style.display = 'none';
                               const fallback = document.getElementById(
@@ -358,7 +389,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                         ) : null}
                         <div
                           id={`fallback-avatar-${entry.id}`}
-                          className={`w-32 h-32 sm:w-36 sm:h-36 rounded-2xl items-center justify-center font-black text-white text-4xl shadow-xl border-2 border-orange-400 ${
+                          className={`w-36 h-36 sm:w-40 sm:h-40 lg:w-44 lg:h-44 xl:w-48 xl:h-48 rounded-2xl items-center justify-center font-black text-white text-4xl lg:text-5xl shadow-xl border-2 border-orange-400 ${
                             entry.employeeAvatarUrl ? 'hidden' : 'flex'
                           }`}
                           style={{
@@ -369,55 +400,65 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                         </div>
 
                         {/* Live pulse dot */}
-                        <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                        <span className="absolute -bottom-1 -right-1 flex h-4 w-4 lg:h-5 lg:w-5">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-4 w-4 bg-orange-500 border-2 border-slate-900"></span>
+                          <span className="relative inline-flex rounded-full h-4 w-4 lg:h-5 lg:w-5 bg-orange-500 border-2 border-slate-900"></span>
                         </span>
                       </div>
 
                       {/* 2. EMPLOYEE DETAILS & TIMER */}
                       <div className="w-full mt-3 flex flex-col items-center">
-                        <h4 className="text-base sm:text-lg font-black text-white tracking-tight truncate max-w-full">
+                        <h4 className="text-base sm:text-lg lg:text-xl font-black text-white tracking-tight truncate max-w-full">
                           {entry.employeeName}
                         </h4>
 
                         <div className="flex items-center justify-center gap-1.5 mt-1 flex-wrap">
                           {entry.employeeBrandCode && (
-                            <span className="bg-rose-950/90 border border-rose-500/60 text-rose-300 font-mono font-black px-2 py-0.5 rounded-md text-xs tracking-wider shadow-sm flex items-center gap-1">
+                            <span className="bg-rose-950/90 border border-rose-500/60 text-rose-300 font-mono font-black px-2 py-0.5 rounded-md text-xs lg:text-sm tracking-wider shadow-sm flex items-center gap-1">
                               <span>•</span>
                               <span>{entry.employeeBrandCode}</span>
                             </span>
                           )}
 
                           {entry.employeeNickname && (
-                            <span className="text-xs text-amber-300 bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-md font-semibold">
+                            <span className="text-xs lg:text-sm text-amber-300 bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-md font-semibold">
                               {entry.employeeNickname}
                             </span>
                           )}
                         </div>
 
                         {/* Timer & Start time */}
-                        <div className="mt-2.5 w-full flex items-center justify-center gap-1.5 bg-orange-950/50 border border-orange-500/30 text-orange-300 font-mono text-xs font-bold py-1.5 px-3 rounded-xl shadow-inner">
+                        <div className="mt-2.5 w-full flex items-center justify-center gap-1.5 bg-orange-950/50 border border-orange-500/30 text-orange-300 font-mono text-xs lg:text-sm font-bold py-1.5 lg:py-2 px-3 rounded-xl shadow-inner">
                           <Timer className="w-4 h-4 text-orange-400 animate-pulse" />
                           <span>บริการ {timerText} น.</span>
                           <span className="text-slate-500">•</span>
-                          <span className="text-slate-400 font-normal text-[11px]">
+                          <span className="text-slate-400 font-normal text-[11px] lg:text-xs">
                             เริ่ม {enteredTime}
                           </span>
                         </div>
                       </div>
 
-                      {/* 3. FULL-WIDTH COMPLETE SERVE BUTTON */}
-                      <button
-                        id={`btn-complete-${entry.id}`}
-                        disabled={actionInProgress === entry.id}
-                        onClick={() => handleComplete(entry.id)}
-                        title="จบคิวแล้วกลับไปต่อท้ายแถวอัตโนมัติ"
-                        className="w-full mt-3 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-95 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 border border-emerald-400/40 transition cursor-pointer"
-                      >
-                        <Check className="w-4 h-4 stroke-[3]" />
-                        <span>✓ จบคิว (ต่อท้าย)</span>
-                      </button>
+                      {/* 3. FULL-WIDTH COMPLETE SERVE BUTTON OR READ-ONLY STATUS */}
+                      {isSideEditable ? (
+                        <button
+                          id={`btn-complete-${entry.id}`}
+                          disabled={actionInProgress === entry.id}
+                          onClick={() => handleComplete(entry.id)}
+                          title="จบคิวแล้วกลับไปต่อท้ายแถวอัตโนมัติ"
+                          className="w-full mt-3 py-2.5 lg:py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-95 text-white font-black text-sm lg:text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 border border-emerald-400/40 transition cursor-pointer"
+                        >
+                          <Check className="w-4 h-4 lg:w-5 lg:h-5 stroke-[3]" />
+                          <span>✓ จบคิว (ต่อท้าย)</span>
+                        </button>
+                      ) : (
+                        <div
+                          id={`status-serving-readonly-${entry.id}`}
+                          className="w-full mt-3 py-2 px-3 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-400 text-xs font-semibold flex items-center justify-center gap-1.5 select-none"
+                        >
+                          <Lock className="w-3.5 h-3.5 text-amber-400" />
+                          <span>จัดการได้ที่เครื่องฝั่ง {side}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -449,12 +490,17 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                 </div>
               </div>
 
-              {waitingEntries.length > 1 && (
+              {isSideEditable && waitingEntries.length > 1 ? (
                 <div className="flex items-center gap-1.5 text-[11px] text-cyan-300 bg-cyan-950/60 border border-cyan-500/40 rounded-xl px-2.5 py-1 shadow-sm select-none">
                   <GripVertical className="w-3.5 h-3.5 text-cyan-400" />
                   <span>💡 กดค้างแล้วลากเพื่อเลื่อนลำดับคิว</span>
                 </div>
-              )}
+              ) : !isSideEditable ? (
+                <div className="flex items-center gap-1 text-[11px] text-slate-400 bg-slate-950/70 border border-slate-800 rounded-xl px-2.5 py-1 shadow-sm select-none">
+                  <Lock className="w-3 h-3 text-amber-400" />
+                  <span>ดูได้อย่างเดียว (ห้ามแก้ไข)</span>
+                </div>
+              ) : null}
             </div>
 
             {/* Waiting Queue List */}
@@ -470,21 +516,25 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                   ไม่มีพนักงานรอในคิวฝั่ง {side}
                 </div>
                 <p className="text-xs text-slate-500 mt-1 max-w-xs">
-                  เมื่อพนักงานพร้อมรับลูกค้า ให้กดปุ่มด้านล่างเพื่อลงคิว
+                  {isSideEditable
+                    ? 'เมื่อพนักงานพร้อมรับลูกค้า ให้กดปุ่มด้านล่างเพื่อลงคิว'
+                    : `คิวฝั่ง ${side} ว่างอยู่ (ลงคิวได้ที่เครื่องฝั่ง ${side})`}
                 </p>
-                <button
-                  onClick={() => onOpenAddQueue(side)}
-                  className={`mt-4 px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
-                    isLeft
-                      ? 'border-blue-500/40 text-blue-300 hover:bg-blue-950/60'
-                      : 'border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/60'
-                  }`}
-                >
-                  + ลงคิวฝั่ง {side} ตอนนี้
-                </button>
+                {isSideEditable && (
+                  <button
+                    onClick={() => onOpenAddQueue(side)}
+                    className={`mt-4 px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                      isLeft
+                        ? 'border-blue-500/40 text-blue-300 hover:bg-blue-950/60'
+                        : 'border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/60'
+                    }`}
+                  >
+                    + ลงคิวฝั่ง {side} ตอนนี้
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="space-y-2 flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-2.5 sm:gap-3 flex-1">
                 {waitingEntries.map((entry, index) => {
                   const rankNumber = String(index + 1).padStart(2, '0');
                   const isRankOne = index === 0;
@@ -506,7 +556,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                     <React.Fragment key={entry.id}>
                       {/* Drop Target Indicator when dragging */}
                       {isThisDropTarget && (
-                        <div className="py-1.5 px-3 rounded-xl bg-gradient-to-r from-cyan-950 via-slate-900 to-cyan-950 border-2 border-cyan-400 text-cyan-200 text-xs font-bold flex items-center justify-between shadow-xl shadow-cyan-950/80 animate-pulse my-1 select-none">
+                        <div className="col-span-full py-2 px-3.5 rounded-xl bg-gradient-to-r from-cyan-950 via-slate-900 to-cyan-950 border-2 border-cyan-400 text-cyan-200 text-xs font-bold flex items-center justify-between shadow-xl shadow-cyan-950/80 animate-pulse my-1 select-none">
                           <div className="flex items-center gap-2">
                             <ArrowUpDown className="w-3.5 h-3.5 text-cyan-300 animate-bounce" />
                             <span>
@@ -527,8 +577,9 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                         id={`waiting-card-${entry.id}`}
                         data-queue-side={side}
                         data-waiting-index={index}
-                        draggable={waitingEntries.length > 1 && !isReordering}
+                        draggable={isSideEditable && waitingEntries.length > 1 && !isReordering}
                         onDragStart={(e) => {
+                          if (!isSideEditable) return;
                           if ((e.target as HTMLElement).closest('button')) {
                             e.preventDefault();
                             return;
@@ -541,6 +592,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                           e.dataTransfer.setData('text/plain', entry.id);
                         }}
                         onDragOver={(e) => {
+                          if (!isSideEditable) return;
                           if (draggedSide === side) {
                             e.preventDefault();
                             e.dataTransfer.dropEffect = 'move';
@@ -551,6 +603,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                           }
                         }}
                         onDrop={async (e) => {
+                          if (!isSideEditable) return;
                           e.preventDefault();
                           if (draggedSide === side && draggedEntryId) {
                             await executeReorder(draggedEntryId, side, index + 1);
@@ -562,6 +615,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                           resetDragState();
                         }}
                         onTouchStart={(e) => {
+                          if (!isSideEditable) return;
                           if ((e.target as HTMLElement).closest('button')) return;
                           if (waitingEntries.length <= 1) return;
                           const touch = e.touches[0];
@@ -621,8 +675,8 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                         <div className="flex items-center justify-between gap-2">
                           {/* Left: Drag Grip, Up/Down, Queue Number, Compact Avatar, Name */}
                           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1">
-                            {/* Drag Grip Handle (กดค้างแล้วลาก) */}
-                            {waitingEntries.length > 1 && (
+                            {/* Drag Grip Handle (กดค้างแล้วลาก) - เฉพาะฝั่งที่เครื่องนี้แก้ไขได้ */}
+                            {isSideEditable && waitingEntries.length > 1 && (
                               <div
                                 className="drag-grip p-1 -ml-1 text-slate-500 hover:text-cyan-300 cursor-grab active:cursor-grabbing rounded-lg hover:bg-slate-700/60 transition flex items-center justify-center touch-none select-none flex-shrink-0"
                                 title="กดค้างแล้วลากเพื่อเลื่อนลำดับคิว"
@@ -633,52 +687,54 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
 
                             {/* Queue Number Badge & Up/Down Steppers */}
                             <div className="flex items-center gap-1 flex-shrink-0">
-                              {/* Up/Down Quick Shift Buttons */}
-                              <div className="flex flex-col gap-0.5">
-                                <button
-                                  type="button"
-                                  id={`btn-move-up-${entry.id}`}
-                                  draggable={false}
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                  onTouchStart={(e) => e.stopPropagation()}
-                                  disabled={index === 0 || actionInProgress === entry.id}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onOpenMoveQueue(entry, 'UP');
-                                  }}
-                                  title={
-                                    index === 0
-                                      ? 'อยู่ที่ลำดับแรกแล้ว'
-                                      : 'เลื่อนขึ้น 1 ลำดับ'
-                                  }
-                                  className="p-0.5 rounded bg-slate-950 border border-slate-800 hover:border-cyan-500/70 hover:bg-cyan-950/60 text-slate-400 hover:text-cyan-300 disabled:opacity-20 disabled:cursor-not-allowed transition cursor-pointer"
-                                >
-                                  <ChevronUp className="w-3 h-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  id={`btn-move-down-${entry.id}`}
-                                  draggable={false}
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                  onTouchStart={(e) => e.stopPropagation()}
-                                  disabled={
-                                    index === waitingEntries.length - 1 ||
-                                    actionInProgress === entry.id
-                                  }
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onOpenMoveQueue(entry, 'DOWN');
-                                  }}
-                                  title={
-                                    index === waitingEntries.length - 1
-                                      ? 'อยู่ที่ลำดับสุดท้ายแล้ว'
-                                      : 'เลื่อนลง 1 ลำดับ'
-                                  }
-                                  className="p-0.5 rounded bg-slate-950 border border-slate-800 hover:border-cyan-500/70 hover:bg-cyan-950/60 text-slate-400 hover:text-cyan-300 disabled:opacity-20 disabled:cursor-not-allowed transition cursor-pointer"
-                                >
-                                  <ChevronDown className="w-3 h-3" />
-                                </button>
-                              </div>
+                              {/* Up/Down Quick Shift Buttons - เฉพาะฝั่งที่เครื่องนี้แก้ไขได้ */}
+                              {isSideEditable && (
+                                <div className="flex flex-col gap-0.5">
+                                  <button
+                                    type="button"
+                                    id={`btn-move-up-${entry.id}`}
+                                    draggable={false}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()}
+                                    disabled={index === 0 || actionInProgress === entry.id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onOpenMoveQueue(entry, 'UP');
+                                    }}
+                                    title={
+                                      index === 0
+                                        ? 'อยู่ที่ลำดับแรกแล้ว'
+                                        : 'เลื่อนขึ้น 1 ลำดับ'
+                                    }
+                                    className="p-0.5 rounded bg-slate-950 border border-slate-800 hover:border-cyan-500/70 hover:bg-cyan-950/60 text-slate-400 hover:text-cyan-300 disabled:opacity-20 disabled:cursor-not-allowed transition cursor-pointer"
+                                  >
+                                    <ChevronUp className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    id={`btn-move-down-${entry.id}`}
+                                    draggable={false}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()}
+                                    disabled={
+                                      index === waitingEntries.length - 1 ||
+                                      actionInProgress === entry.id
+                                    }
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onOpenMoveQueue(entry, 'DOWN');
+                                    }}
+                                    title={
+                                      index === waitingEntries.length - 1
+                                        ? 'อยู่ที่ลำดับสุดท้ายแล้ว'
+                                        : 'เลื่อนลง 1 ลำดับ'
+                                    }
+                                    className="p-0.5 rounded bg-slate-950 border border-slate-800 hover:border-cyan-500/70 hover:bg-cyan-950/60 text-slate-400 hover:text-cyan-300 disabled:opacity-20 disabled:cursor-not-allowed transition cursor-pointer"
+                                  >
+                                    <ChevronDown className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
 
                               {/* Compact Queue Number Badge */}
                               <div
@@ -759,78 +815,88 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                           </div>
 
                           {/* Right: Actions */}
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            {/* Rank 01 "ขึ้นคิว" Button: Takes Customer */}
-                            {isRankOne && (
+                          {isSideEditable ? (
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {/* Rank 01 "ขึ้นคิว" Button: Takes Customer */}
+                              {isRankOne && (
+                                <button
+                                  id={`btn-serve-${entry.id}`}
+                                  draggable={false}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  touch-action="manipulation"
+                                  onTouchStart={(e) => e.stopPropagation()}
+                                  disabled={actionInProgress === entry.id}
+                                  onClick={() => handleServe(entry.id)}
+                                  className="flex items-center gap-1.5 font-black text-xs sm:text-sm px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl shadow-md bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 active:scale-95 text-slate-950 shadow-orange-500/30 transition cursor-pointer flex-shrink-0"
+                                >
+                                  <Flame className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
+                                  <span>🔥 ขึ้นคิว</span>
+                                </button>
+                              )}
+
+                              {/* Other Ranks alternative serve button */}
+                              {!isRankOne && (
+                                <button
+                                  id={`btn-serve-alt-${entry.id}`}
+                                  draggable={false}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onTouchStart={(e) => e.stopPropagation()}
+                                  disabled={actionInProgress === entry.id}
+                                  onClick={() => handleServe(entry.id)}
+                                  title="กรณีลูกค้าเรียกตัวขึ้นคิว"
+                                  className="flex items-center gap-1 font-bold text-xs px-2 py-1 rounded-lg border border-slate-700 hover:border-orange-500/50 hover:bg-orange-950/30 text-slate-300 hover:text-orange-300 transition cursor-pointer"
+                                >
+                                  <Flame className="w-3 h-3 text-orange-400" />
+                                  <span className="hidden sm:inline">ขึ้นคิว</span>
+                                </button>
+                              )}
+
+                              {/* Reorder / Move Queue button */}
                               <button
-                                id={`btn-serve-${entry.id}`}
+                                type="button"
+                                id={`btn-reorder-${entry.id}`}
                                 draggable={false}
                                 onMouseDown={(e) => e.stopPropagation()}
-                                touch-action="manipulation"
                                 onTouchStart={(e) => e.stopPropagation()}
                                 disabled={actionInProgress === entry.id}
-                                onClick={() => handleServe(entry.id)}
-                                className="flex items-center gap-1.5 font-black text-xs sm:text-sm px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl shadow-md bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 active:scale-95 text-slate-950 shadow-orange-500/30 transition cursor-pointer flex-shrink-0"
+                                onClick={() => onOpenMoveQueue(entry)}
+                                title="ปรับเลื่อนลำดับคิว"
+                                className="p-1.5 text-slate-400 hover:text-cyan-300 hover:bg-cyan-950/40 border border-slate-700/80 hover:border-cyan-700/50 rounded-lg transition text-xs cursor-pointer"
                               >
-                                <Flame className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
-                                <span>🔥 ขึ้นคิว</span>
+                                <ArrowUpDown className="w-3.5 h-3.5" />
                               </button>
-                            )}
 
-                            {/* Other Ranks alternative serve button */}
-                            {!isRankOne && (
+                              {/* Remove button */}
                               <button
-                                id={`btn-serve-alt-${entry.id}`}
+                                id={`btn-remove-${entry.id}`}
                                 draggable={false}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onTouchStart={(e) => e.stopPropagation()}
                                 disabled={actionInProgress === entry.id}
-                                onClick={() => handleServe(entry.id)}
-                                title="กรณีลูกค้าเรียกตัวขึ้นคิว"
-                                className="flex items-center gap-1 font-bold text-xs px-2 py-1 rounded-lg border border-slate-700 hover:border-orange-500/50 hover:bg-orange-950/30 text-slate-300 hover:text-orange-300 transition cursor-pointer"
+                                onClick={() => onOpenRemove(entry)}
+                                title="เอาออกจากคิว (พัก/ไปธุระ/กลับบ้าน)"
+                                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-slate-700/80 hover:border-rose-700/50 rounded-lg transition text-xs cursor-pointer"
                               >
-                                <Flame className="w-3 h-3 text-orange-400" />
-                                <span className="hidden sm:inline">ขึ้นคิว</span>
+                                <X className="w-3.5 h-3.5" />
                               </button>
-                            )}
-
-                            {/* Reorder / Move Queue button */}
-                            <button
-                              type="button"
-                              id={`btn-reorder-${entry.id}`}
-                              draggable={false}
-                              onMouseDown={(e) => e.stopPropagation()}
-                              onTouchStart={(e) => e.stopPropagation()}
-                              disabled={actionInProgress === entry.id}
-                              onClick={() => onOpenMoveQueue(entry)}
-                              title="ปรับเลื่อนลำดับคิว"
-                              className="p-1.5 text-slate-400 hover:text-cyan-300 hover:bg-cyan-950/40 border border-slate-700/80 hover:border-cyan-700/50 rounded-lg transition text-xs cursor-pointer"
-                            >
-                              <ArrowUpDown className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Remove button */}
-                            <button
-                              id={`btn-remove-${entry.id}`}
-                              draggable={false}
-                              onMouseDown={(e) => e.stopPropagation()}
-                              onTouchStart={(e) => e.stopPropagation()}
-                              disabled={actionInProgress === entry.id}
-                              onClick={() => onOpenRemove(entry)}
-                              title="เอาออกจากคิว (พัก/ไปธุระ/กลับบ้าน)"
-                              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-slate-700/80 hover:border-rose-700/50 rounded-lg transition text-xs cursor-pointer"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {isRankOne && (
+                                <span className="text-[11px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1 select-none">
+                                  <span>คิวถัดไป</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </React.Fragment>
                   );
                 })}
 
-                {/* Drop target at bottom for moving to last position */}
-                {draggedSide === side && draggedEntryId && (
+                {/* Drop target at bottom for moving to last position (only when editable) */}
+                {isSideEditable && draggedSide === side && draggedEntryId && (
                   <div
                     onDragOver={(e) => {
                       e.preventDefault();
@@ -846,7 +912,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                       }
                       resetDragState();
                     }}
-                    className="text-center py-2.5 px-3 border border-dashed border-cyan-500/50 rounded-xl text-cyan-400 text-xs bg-cyan-950/20 hover:bg-cyan-950/40 hover:border-cyan-400 transition select-none flex items-center justify-center gap-2"
+                    className="col-span-full text-center py-2.5 px-3 border border-dashed border-cyan-500/50 rounded-xl text-cyan-400 text-xs sm:text-sm bg-cyan-950/20 hover:bg-cyan-950/40 hover:border-cyan-400 transition select-none flex items-center justify-center gap-2"
                   >
                     <ChevronDown className="w-4 h-4" />
                     <span>
@@ -863,7 +929,10 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
         {/* Footer info note */}
         <div className="px-4 py-2.5 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
           <span>* คิวรันตามเวลาจริง ห้ามลัดคิว</span>
-          <span className="text-slate-500">PAINT QUEUE v2 • Multi-Serving</span>
+          <span className={isSideEditable ? 'text-slate-500' : 'text-amber-400/90 font-bold flex items-center gap-1'}>
+            {!isSideEditable && <Lock className="w-3 h-3 text-amber-400" />}
+            {isSideEditable ? 'PAINT QUEUE • จัดการคิวฝั่ง ' + side : 'โหมดดูอย่างเดียว (READ ONLY)'}
+          </span>
         </div>
       </div>
     );
@@ -874,10 +943,133 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
   const activeTitle = isLeft ? '🟦 ฝั่ง LEFT (ซ้าย)' : '🟩 ฝั่ง RIGHT (ขวา)';
   const activeColorScheme = isLeft ? 'blue' : 'emerald';
 
+  const oppositeSide = isLeft ? 'RIGHT' : 'LEFT';
+  const oppositeQueue = isLeft ? rightQueue : leftQueue;
+  const oppositeTitle = isLeft ? '🟩 ฝั่ง RIGHT (ขวา)' : '🟦 ฝั่ง LEFT (ซ้าย)';
+  const oppositeColorScheme = isLeft ? 'emerald' : 'blue';
+
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 relative">
-      {/* Display ONLY this machine's designated side queue */}
-      {renderQueueSide(machineSide, activeQueue, activeTitle, activeColorScheme)}
+    <div className="max-w-7xl 2xl:max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative">
+      {/* Desktop / Counter Screen View Switcher */}
+      <div className="mb-4 bg-slate-900/90 border border-slate-800/80 rounded-2xl p-1.5 flex flex-wrap items-center justify-between gap-2 shadow-lg backdrop-blur-sm">
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 px-2 font-medium">
+          <Monitor className="w-4 h-4 text-cyan-400" />
+          <span className="hidden sm:inline">มุมมองหน้าจอ Desktop:</span>
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            type="button"
+            id="view-mode-current"
+            onClick={() => setDesktopViewMode('CURRENT')}
+            className={`px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer ${
+              desktopViewMode === 'CURRENT'
+                ? isLeft
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/50'
+                  : 'bg-emerald-600 text-white shadow-md shadow-emerald-900/50'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <span>📌 ฝั่งเครื่องนี้ ({isLeft ? 'LEFT ซ้าย' : 'RIGHT ขวา'}) [แก้ไขได้]</span>
+          </button>
+
+          <button
+            type="button"
+            id="view-mode-opposite"
+            onClick={() => setDesktopViewMode('OPPOSITE')}
+            className={`px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer ${
+              desktopViewMode === 'OPPOSITE'
+                ? !isLeft
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/50'
+                  : 'bg-emerald-600 text-white shadow-md shadow-emerald-900/50'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5 opacity-80" />
+            <span>↔️ ดูฝั่งตรงข้าม ({isLeft ? 'RIGHT ขวา' : 'LEFT ซ้าย'}) [ดูอย่างเดียว]</span>
+          </button>
+
+          <button
+            type="button"
+            id="view-mode-dual"
+            onClick={() => setDesktopViewMode('DUAL')}
+            className={`px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer ${
+              desktopViewMode === 'DUAL'
+                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-900/50 ring-1 ring-cyan-400'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Eye className="w-3.5 h-3.5 opacity-80" />
+            <span>🖥️ จอภาพรวม 2 ฝั่ง (Dual Side) [ดูอย่างเดียว]</span>
+          </button>
+        </div>
+
+        {onChangeMachineSide && (
+          <button
+            type="button"
+            onClick={onChangeMachineSide}
+            className="text-xs text-slate-400 hover:text-slate-200 px-2.5 py-1 rounded-lg hover:bg-slate-800/80 transition flex items-center gap-1 ml-auto"
+            title="เปลี่ยนการตั้งค่าเครื่องนี้"
+          >
+            <span>สลับเครื่อง</span>
+          </button>
+        )}
+      </div>
+
+      {/* Informative Banner when in Opposite or Dual Side view */}
+      {desktopViewMode === 'OPPOSITE' && (
+        <div
+          id="banner-opposite-view"
+          className="mb-4 bg-amber-950/40 border border-amber-500/40 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3 text-xs sm:text-sm text-amber-200 shadow-md backdrop-blur-sm"
+        >
+          <div className="flex items-center gap-2 font-medium">
+            <Lock className="w-4 h-4 text-amber-400 flex-shrink-0" />
+            <span>
+              กำลังดู <strong>{oppositeTitle}</strong> ใน<strong>โหมดดูอย่างเดียว (READ ONLY)</strong>: เครื่องนี้เป็นเจ้าของฝั่ง <strong>{isLeft ? 'LEFT (ซ้าย)' : 'RIGHT (ขวา)'}</strong> แก้ไขได้เฉพาะฝั่งตัวเองเท่านั้น
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDesktopViewMode('CURRENT')}
+            className="text-[11px] font-bold bg-amber-900/90 hover:bg-amber-800 text-amber-100 px-3 py-1 rounded-xl border border-amber-500/60 transition cursor-pointer flex-shrink-0"
+          >
+            กลับฝั่งเครื่องนี้ ➔
+          </button>
+        </div>
+      )}
+
+      {desktopViewMode === 'DUAL' && (
+        <div
+          id="banner-dual-view"
+          className="mb-4 bg-cyan-950/40 border border-cyan-500/40 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3 text-xs sm:text-sm text-cyan-200 shadow-md backdrop-blur-sm"
+        >
+          <div className="flex items-center gap-2 font-medium">
+            <Eye className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+            <span>
+              <strong>จอภาพรวม 2 ฝั่งคู่กัน (Dual Side):</strong> จอภาพรวมสำหรับดูสถานการณ์ของทั้งแผนก (โหมดดูอย่างเดียวทั้ง 2 ฝั่ง หากต้องการจัดการคิวให้สลับไปที่ "ฝั่งเครื่องนี้")
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDesktopViewMode('CURRENT')}
+            className="text-[11px] font-bold bg-cyan-900/90 hover:bg-cyan-800 text-cyan-100 px-3 py-1 rounded-xl border border-cyan-500/60 transition cursor-pointer flex-shrink-0"
+          >
+            ไปที่ฝั่งเครื่องนี้ ➔
+          </button>
+        </div>
+      )}
+
+      {/* Main Queue View */}
+      {desktopViewMode === 'DUAL' ? (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+          {renderQueueSide('LEFT', leftQueue, '🟦 ฝั่ง LEFT (ซ้าย)', 'blue')}
+          {renderQueueSide('RIGHT', rightQueue, '🟩 ฝั่ง RIGHT (ขวา)', 'emerald')}
+        </div>
+      ) : desktopViewMode === 'OPPOSITE' ? (
+        renderQueueSide(oppositeSide, oppositeQueue, oppositeTitle, oppositeColorScheme)
+      ) : (
+        renderQueueSide(machineSide, activeQueue, activeTitle, activeColorScheme)
+      )}
 
       {/* Floating Ghost Chip while Touch Dragging (กดค้างแล้วลาก) */}
       {isDraggingTouch && touchCoords && draggedEntryObjRef.current && (

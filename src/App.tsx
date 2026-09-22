@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { QueueBoard } from './components/QueueBoard';
 import { MachineSelectModal } from './components/MachineSelectModal';
@@ -9,17 +9,46 @@ import { AuditLogModal } from './components/AuditLogModal';
 import { EmployeeManagerModal } from './components/EmployeeManagerModal';
 import { ItemsHandledTodayModal } from './components/ItemsHandledTodayModal';
 import { MoveQueueModal } from './components/MoveQueueModal';
-import { Employee, MachineId, QueueEntry, Side, SideSwitchRecord } from './types';
+import { UnauthorizedScreen } from './components/UnauthorizedScreen';
+import { PairDeviceModal } from './components/PairDeviceModal';
+import { DeviceManagementModal } from './components/DeviceManagementModal';
+import {
+  checkDeviceAuthStatus,
+  fetchWithAuth,
+  getStoredDeviceToken,
+  clearStoredDeviceToken,
+} from './api';
+import {
+  AuthorizedDevice,
+  Employee,
+  MachineId,
+  QueueEntry,
+  Side,
+  SideSwitchRecord,
+} from './types';
 import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
 const MACHINE_SIDE_STORAGE_KEY = 'paint_queue_machine_side';
 
 export default function App() {
+  // Device Authorization State
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [authorizedDevice, setAuthorizedDevice] = useState<AuthorizedDevice | null>(null);
+  const [registeredDevices, setRegisteredDevices] = useState<{
+    side: Side;
+    deviceId?: string;
+    status: 'AUTHORIZED' | 'REVOKED' | 'NOT_REGISTERED';
+    lastSeenAt?: string;
+  }[]>([]);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(false);
+  const [isPairModalOpen, setIsPairModalOpen] = useState(false);
+  const [isDeviceManagementOpen, setIsDeviceManagementOpen] = useState(false);
+
   // Machine Designated Side (LEFT or RIGHT) - persistent per PC
   const [machineSide, setMachineSide] = useState<Side | null>(() => {
     const saved = localStorage.getItem(MACHINE_SIDE_STORAGE_KEY);
     if (saved === 'LEFT' || saved === 'RIGHT') return saved as Side;
-    // Migration fallback from old key if exists
     const legacy = localStorage.getItem('paint_queue_machine_id');
     if (legacy === 'PC_LEFT') return 'LEFT';
     if (legacy === 'PC_RIGHT') return 'RIGHT';
@@ -63,12 +92,31 @@ export default function App() {
     }, 4000);
   };
 
-  // If no machine side set on first open, prompt user to select side
-  useEffect(() => {
-    if (!machineSide) {
-      setIsMachineModalOpen(true);
+  // Device Auth Status Check
+  const checkAuth = useCallback(async () => {
+    setIsCheckingAuth(true);
+    try {
+      const data = await checkDeviceAuthStatus();
+      setIsAuthorized(data.authorized);
+      setAuthorizedDevice(data.device || null);
+      setRegisteredDevices(data.registeredDevices || []);
+
+      if (data.authorized && data.device?.side) {
+        setMachineSide(data.device.side);
+        localStorage.setItem(MACHINE_SIDE_STORAGE_KEY, data.device.side);
+      }
+    } catch (err) {
+      console.error('Check auth error:', err);
+      setIsAuthorized(false);
+    } finally {
+      setIsCheckingAuth(false);
+      setAuthChecked(true);
     }
-  }, [machineSide]);
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const handleSelectSide = (side: Side) => {
     localStorage.setItem(MACHINE_SIDE_STORAGE_KEY, side);
@@ -80,10 +128,34 @@ export default function App() {
     );
   };
 
-  // Fallback REST fetch function
+  const handlePairedSuccess = (newDevice: AuthorizedDevice) => {
+    setAuthorizedDevice(newDevice);
+    setIsAuthorized(true);
+    setMachineSide(newDevice.side);
+    localStorage.setItem(MACHINE_SIDE_STORAGE_KEY, newDevice.side);
+    showToast(`ลงทะเบียนเครื่อง ${newDevice.deviceId} (ฝั่ง ${newDevice.side}) สำเร็จ`, 'success');
+    checkAuth();
+  };
+
+  const handleRevokedSuccess = () => {
+    clearStoredDeviceToken();
+    setIsAuthorized(false);
+    setAuthorizedDevice(null);
+    showToast('ถอนการอนุญาตเครื่องนี้แล้ว สามารถ Pair เครื่องใหม่ได้', 'info');
+    checkAuth();
+  };
+
+  // REST fetch function (only runs when authorized)
   const fetchState = useCallback(async () => {
+    if (!isAuthorized) return;
     try {
-      const res = await fetch('/api/queue/state');
+      const res = await fetchWithAuth('/api/queue/state');
+      if (res.status === 403) {
+        setIsAuthorized(false);
+        setAuthorizedDevice(null);
+        checkAuth();
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setLeftQueue(data.leftQueue || []);
@@ -96,17 +168,24 @@ export default function App() {
     } catch {
       setIsConnected(false);
     }
-  }, []);
+  }, [isAuthorized, checkAuth]);
 
-  // SSE Real-time Synchronization
+  // SSE Real-time Synchronization (only active when authorized)
   useEffect(() => {
+    if (!isAuthorized) return;
+
     fetchState();
 
     let eventSource: EventSource | null = null;
     let reconnectTimeout: any = null;
 
     const connectSSE = () => {
-      eventSource = new EventSource('/api/queue/stream');
+      const token = getStoredDeviceToken();
+      const sseUrl = token
+        ? `/api/queue/stream?device_token=${encodeURIComponent(token)}`
+        : '/api/queue/stream';
+
+      eventSource = new EventSource(sseUrl);
 
       eventSource.onopen = () => {
         setIsConnected(true);
@@ -138,6 +217,23 @@ export default function App() {
         }
       });
 
+      eventSource.addEventListener('DEVICE_REVOKED', (e: MessageEvent) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.deviceId === authorizedDevice?.deviceId) {
+            clearStoredDeviceToken();
+            setIsAuthorized(false);
+            setAuthorizedDevice(null);
+            showToast(`เครื่องนี้ (${data.deviceId}) ถูกถอนสิทธิ์โดยผู้ดูแลระบบ`, 'error');
+            checkAuth();
+          } else {
+            checkAuth();
+          }
+        } catch (err) {
+          console.error('SSE DEVICE_REVOKED parse error:', err);
+        }
+      });
+
       eventSource.onerror = () => {
         setIsConnected(false);
         if (eventSource) {
@@ -151,7 +247,7 @@ export default function App() {
 
     connectSSE();
 
-    // Secondary polling safety interval (every 10s) in case SSE disconnects silently
+    // Polling interval (every 10s)
     const pollingTimer = setInterval(fetchState, 10000);
 
     return () => {
@@ -159,13 +255,32 @@ export default function App() {
       clearTimeout(reconnectTimeout);
       clearInterval(pollingTimer);
     };
-  }, [fetchState]);
+  }, [isAuthorized, authorizedDevice?.deviceId, fetchState, checkAuth]);
 
   // Operations
   const activeMachine = machineId || 'PC_LEFT';
 
+  const handleOpenAddQueue = (side: Side) => {
+    if (machineSide && side !== machineSide) {
+      showToast(
+        `เครื่องนี้เป็นเจ้าของฝั่ง ${machineSide} ไม่สามารถลงคิวให้ฝั่ง ${side} ได้ (ดูได้อย่างเดียว)`,
+        'error'
+      );
+      return;
+    }
+    setAddQueueSide(side);
+  };
+
   const handleAddQueue = async (employeeId: string, side: Side) => {
-    const res = await fetch('/api/queue/add', {
+    if (machineSide && side !== machineSide) {
+      showToast(
+        `เครื่องนี้เป็นเจ้าของฝั่ง ${machineSide} ไม่สามารถลงคิวให้ฝั่ง ${side} ได้ (ดูได้อย่างเดียว)`,
+        'error'
+      );
+      throw new Error('ไม่มีสิทธิ์ลงคิวให้ฝั่งตรงข้าม');
+    }
+
+    const res = await fetchWithAuth('/api/queue/add', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -175,7 +290,18 @@ export default function App() {
       }),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 403) {
+      if (data.error === 'FORBIDDEN_OPPOSITE_SIDE') {
+        showToast(data.message || 'ไม่มีสิทธิ์แก้ไขคิวฝั่งตรงข้าม (ดูได้อย่างเดียว)', 'error');
+        throw new Error(data.message || 'ไม่มีสิทธิ์แก้ไขคิวฝั่งตรงข้าม');
+      }
+      setIsAuthorized(false);
+      checkAuth();
+      throw new Error('อุปกรณ์นี้ไม่ได้รับอนุญาตให้ทำรายการ');
+    }
+
     if (!res.ok) {
       throw new Error(data.error || 'ไม่สามารถลงคิวได้');
     }
@@ -184,7 +310,7 @@ export default function App() {
   };
 
   const handleStartServe = async (entryId: string) => {
-    const res = await fetch('/api/queue/serve', {
+    const res = await fetchWithAuth('/api/queue/serve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -193,7 +319,19 @@ export default function App() {
       }),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 403) {
+      if (data.error === 'FORBIDDEN_OPPOSITE_SIDE') {
+        showToast(data.message || 'ไม่มีสิทธิ์แก้ไขคิวฝั่งตรงข้าม (ดูได้อย่างเดียว)', 'error');
+        return;
+      }
+      setIsAuthorized(false);
+      checkAuth();
+      showToast('อุปกรณ์นี้ไม่ได้รับอนุญาตให้ทำรายการ', 'error');
+      return;
+    }
+
     if (!res.ok) {
       showToast(data.error || 'ไม่สามารถเริ่มบริการได้', 'error');
       return;
@@ -203,7 +341,7 @@ export default function App() {
   };
 
   const handleCompleteServe = async (entryId: string) => {
-    const res = await fetch('/api/queue/complete', {
+    const res = await fetchWithAuth('/api/queue/complete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -212,7 +350,19 @@ export default function App() {
       }),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 403) {
+      if (data.error === 'FORBIDDEN_OPPOSITE_SIDE') {
+        showToast(data.message || 'ไม่มีสิทธิ์แก้ไขคิวฝั่งตรงข้าม (ดูได้อย่างเดียว)', 'error');
+        return;
+      }
+      setIsAuthorized(false);
+      checkAuth();
+      showToast('อุปกรณ์นี้ไม่ได้รับอนุญาตให้ทำรายการ', 'error');
+      return;
+    }
+
     if (!res.ok) {
       showToast(data.error || 'ไม่สามารถจบลูกค้าได้', 'error');
       return;
@@ -226,7 +376,7 @@ export default function App() {
     reasonKey: string,
     reasonText?: string
   ) => {
-    const res = await fetch('/api/queue/remove', {
+    const res = await fetchWithAuth('/api/queue/remove', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -237,7 +387,18 @@ export default function App() {
       }),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 403) {
+      if (data.error === 'FORBIDDEN_OPPOSITE_SIDE') {
+        showToast(data.message || 'ไม่มีสิทธิ์แก้ไขคิวฝั่งตรงข้าม (ดูได้อย่างเดียว)', 'error');
+        throw new Error(data.message || 'ไม่มีสิทธิ์แก้ไขคิวฝั่งตรงข้าม');
+      }
+      setIsAuthorized(false);
+      checkAuth();
+      throw new Error('อุปกรณ์นี้ไม่ได้รับอนุญาตให้ทำรายการ');
+    }
+
     if (!res.ok) {
       throw new Error(data.error || 'ไม่สามารถนำออกจากคิวได้');
     }
@@ -258,7 +419,7 @@ export default function App() {
     targetRank: number,
     reason: string = 'กดค้างแล้วลากเลื่อนคิว (Drag & Drop)'
   ) => {
-    const res = await fetch('/api/queue/move', {
+    const res = await fetchWithAuth('/api/queue/move', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -269,7 +430,18 @@ export default function App() {
       }),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 403) {
+      if (data.error === 'FORBIDDEN_OPPOSITE_SIDE') {
+        showToast(data.message || 'ไม่มีสิทธิ์แก้ไขคิวฝั่งตรงข้าม (ดูได้อย่างเดียว)', 'error');
+        throw new Error(data.message || 'ไม่มีสิทธิ์แก้ไขคิวฝั่งตรงข้าม');
+      }
+      setIsAuthorized(false);
+      checkAuth();
+      throw new Error('อุปกรณ์นี้ไม่ได้รับอนุญาตให้ทำรายการ');
+    }
+
     if (!res.ok) {
       throw new Error(data.error || 'ไม่สามารถเลื่อนลำดับคิวได้');
     }
@@ -281,13 +453,19 @@ export default function App() {
   };
 
   const handleSwitchSides = async () => {
-    const res = await fetch('/api/queue/switch-sides', {
+    const res = await fetchWithAuth('/api/queue/switch-sides', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         machineId: activeMachine,
       }),
     });
+
+    if (res.status === 403) {
+      setIsAuthorized(false);
+      checkAuth();
+      throw new Error('อุปกรณ์นี้ไม่ได้รับอนุญาตให้ทำรายการ');
+    }
 
     const data = await res.json();
     if (!res.ok) {
@@ -302,11 +480,18 @@ export default function App() {
     if (!confirm('ต้องการย้อนกลับการสลับฝั่งครั้งล่าสุดใช่หรือไม่?')) return;
 
     try {
-      const res = await fetch('/api/queue/undo-switch', {
+      const res = await fetchWithAuth('/api/queue/undo-switch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ machineId: activeMachine }),
       });
+
+      if (res.status === 403) {
+        setIsAuthorized(false);
+        checkAuth();
+        showToast('อุปกรณ์นี้ไม่ได้รับอนุญาตให้ทำรายการ', 'error');
+        return;
+      }
 
       const data = await res.json();
       if (!res.ok) {
@@ -328,7 +513,7 @@ export default function App() {
     brand?: string,
     brandCode?: string
   ) => {
-    const res = await fetch('/api/employees', {
+    const res = await fetchWithAuth('/api/employees', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -340,6 +525,12 @@ export default function App() {
         machineId: activeMachine,
       }),
     });
+
+    if (res.status === 403) {
+      setIsAuthorized(false);
+      checkAuth();
+      throw new Error('อุปกรณ์นี้ไม่ได้รับอนุญาตให้ทำรายการ');
+    }
 
     const data = await res.json();
     if (!res.ok) {
@@ -357,7 +548,7 @@ export default function App() {
       brandCode?: string;
     }
   ) => {
-    const res = await fetch(`/api/employees/${id}/update`, {
+    const res = await fetchWithAuth(`/api/employees/${id}/update`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -365,6 +556,12 @@ export default function App() {
         machineId: activeMachine,
       }),
     });
+
+    if (res.status === 403) {
+      setIsAuthorized(false);
+      checkAuth();
+      throw new Error('อุปกรณ์นี้ไม่ได้รับอนุญาตให้ทำรายการ');
+    }
 
     const data = await res.json();
     if (!res.ok) {
@@ -374,6 +571,37 @@ export default function App() {
     showToast(`อัปเดตข้อมูล ${data.employee.name} เรียบร้อยแล้ว`, 'success');
   };
 
+  // 1. Loading screen while verifying initial device status
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 gap-3 selection:bg-blue-600 selection:text-white">
+        <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+        <p className="text-sm font-medium">กำลังตรวจสอบสิทธิ์เครื่องกลางของระบบ PAINT QUEUE...</p>
+      </div>
+    );
+  }
+
+  // 2. Machine Lock Screen for Unauthorized Devices
+  if (!isAuthorized) {
+    return (
+      <>
+        <UnauthorizedScreen
+          registeredDevices={registeredDevices}
+          onOpenPairModal={() => setIsPairModalOpen(true)}
+          onRefresh={checkAuth}
+          isChecking={isCheckingAuth}
+        />
+        <PairDeviceModal
+          isOpen={isPairModalOpen}
+          onClose={() => setIsPairModalOpen(false)}
+          onPairedSuccess={handlePairedSuccess}
+          registeredDevices={registeredDevices}
+        />
+      </>
+    );
+  }
+
+  // 3. Authorized Central Machine Main Application
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">
       {/* Top Navigation & Status */}
@@ -389,6 +617,8 @@ export default function App() {
         lastSwitch={lastSwitch}
         canUndoSwitch={canUndoSwitch}
         onUndoSwitch={handleUndoSwitch}
+        authorizedDevice={authorizedDevice}
+        onOpenDeviceManagement={() => setIsDeviceManagementOpen(true)}
       />
 
       {/* Main Queue Dashboard */}
@@ -411,7 +641,7 @@ export default function App() {
           rightQueue={rightQueue}
           machineId={activeMachine}
           machineSide={machineSide || 'LEFT'}
-          onOpenAddQueue={(side) => setAddQueueSide(side)}
+          onOpenAddQueue={handleOpenAddQueue}
           onStartServe={handleStartServe}
           onCompleteServe={handleCompleteServe}
           onOpenRemove={(entry) => setRemoveTargetEntry(entry)}
@@ -423,7 +653,7 @@ export default function App() {
 
       {/* Footer Info */}
       <footer className="border-t border-slate-900 bg-slate-950 py-3 text-center text-[11px] text-slate-600">
-        PAINT QUEUE • ระบบจัดคิวพนักงานขายแผนกสี • ใครมาถึงก่อนได้คิวก่อน • Real-time Sync
+        PAINT QUEUE • ระบบจัดคิวพนักงานขายแผนกสี • ใครมาถึงก่อนได้คิวก่อน • Device Lock Protected
       </footer>
 
       {/* Toast Notification */}
@@ -519,6 +749,20 @@ export default function App() {
       <ItemsHandledTodayModal
         isOpen={isHandledStatsOpen}
         onClose={() => setIsHandledStatsOpen(false)}
+      />
+
+      <PairDeviceModal
+        isOpen={isPairModalOpen}
+        onClose={() => setIsPairModalOpen(false)}
+        onPairedSuccess={handlePairedSuccess}
+        registeredDevices={registeredDevices}
+      />
+
+      <DeviceManagementModal
+        isOpen={isDeviceManagementOpen}
+        onClose={() => setIsDeviceManagementOpen(false)}
+        device={authorizedDevice}
+        onRevokedSuccess={handleRevokedSuccess}
       />
     </div>
   );

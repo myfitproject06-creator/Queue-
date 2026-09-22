@@ -11,6 +11,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { AuditActionType, AuditLogEntry } from '../types';
+import { fetchWithAuth } from '../api';
 
 interface AuditLogModalProps {
   isOpen: boolean;
@@ -47,7 +48,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
       if (actionFilter !== 'ALL') params.append('action', actionFilter);
       params.append('limit', '300');
 
-      const res = await fetch(`/api/audit-logs?${params.toString()}`);
+      const res = await fetchWithAuth(`/api/audit-logs?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setLogs(data.logs || []);
@@ -115,6 +116,26 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
         return (
           <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-950 text-teal-300 border border-teal-600/40">
             👥 เพิ่มพนักงาน
+          </span>
+        );
+      case 'DEVICE_REGISTERED':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-500/50">
+            🔑 ลงทะเบียนเครื่อง
+          </span>
+        );
+      case 'DEVICE_REVOKED':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-500/50">
+            🚫 ถอนสิทธิ์เครื่อง
+          </span>
+        );
+      case 'UNAUTHORIZED_ACCESS':
+      case 'UNAUTHORIZED_API_REQUEST':
+      case 'DEVICE_AUTH_FAILED':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-600/50">
+            🛡️ ตรวจพบผู้ไม่ได้รับอนุญาต
           </span>
         );
       case 'SYSTEM_RESET':
