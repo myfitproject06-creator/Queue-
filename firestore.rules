@@ -1,0 +1,97 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidEmployee(data) {
+      return data.keys().hasAll(['id', 'name', 'active'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.active is bool
+        && (!('nickname' in data) || (data.nickname is string && data.nickname.size() <= 50))
+        && (!('brand' in data) || (data.brand is string && data.brand.size() <= 100))
+        && (!('brandCode' in data) || (data.brandCode is string && data.brandCode.size() <= 20))
+        && (!('avatarColor' in data) || (data.avatarColor is string && data.avatarColor.size() <= 30))
+        && (!('avatarUrl' in data) || (data.avatarUrl is string && data.avatarUrl.size() <= 500));
+    }
+
+    function isValidBrand(data) {
+      return data.keys().hasAll(['id', 'name', 'code', 'color'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.code is string && data.code.size() > 0 && data.code.size() <= 20
+        && data.color is string && data.color.size() <= 30;
+    }
+
+    function isValidQueueEntry(data) {
+      return data.keys().hasAll(['id', 'employeeId', 'employeeName', 'side', 'status', 'enteredAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.employeeId is string && data.employeeId.size() <= 128
+        && data.employeeName is string && data.employeeName.size() <= 100
+        && data.side in ['LEFT', 'RIGHT']
+        && data.status in ['WAITING', 'NEXT', 'SERVING']
+        && data.enteredAt is string && data.enteredAt.size() <= 100;
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['id', 'timestamp', 'action', 'machineId', 'details'])
+        && data.id is string && data.id.size() <= 128
+        && data.timestamp is string && data.timestamp.size() <= 100
+        && data.action is string && data.action.size() <= 50
+        && data.machineId is string && data.machineId.size() <= 50
+        && data.details is string && data.details.size() <= 1000;
+    }
+
+    // Employees Collection - Permanent store for staff
+    match /employees/{employeeId} {
+      allow read: if isValidId(employeeId);
+      allow create: if isValidId(employeeId) && isValidEmployee(request.resource.data);
+      allow update: if isValidId(employeeId) && isValidEmployee(request.resource.data)
+        && request.resource.data.id == resource.data.id;
+      allow delete: if isValidId(employeeId);
+    }
+
+    // Brands Collection
+    match /brands/{brandId} {
+      allow read: if isValidId(brandId);
+      allow create: if isValidId(brandId) && isValidBrand(request.resource.data);
+      allow update: if isValidId(brandId) && isValidBrand(request.resource.data)
+        && request.resource.data.id == resource.data.id;
+      allow delete: if isValidId(brandId);
+    }
+
+    // Queue Entries Collection
+    match /queueEntries/{entryId} {
+      allow read: if isValidId(entryId);
+      allow create: if isValidId(entryId) && isValidQueueEntry(request.resource.data);
+      allow update: if isValidId(entryId) && isValidQueueEntry(request.resource.data)
+        && request.resource.data.id == resource.data.id;
+      allow delete: if isValidId(entryId);
+    }
+
+    // Audit Logs Collection
+    match /auditLogs/{logId} {
+      allow read: if isValidId(logId);
+      allow create: if isValidId(logId) && isValidAuditLog(request.resource.data);
+      allow update, delete: if false; // Audit logs are append-only immutable
+    }
+
+    // System State Collection
+    match /systemState/{stateId} {
+      allow read: if isValidId(stateId);
+      allow write: if isValidId(stateId);
+    }
+
+    // Connection Health Test
+    match /test/{docId} {
+      allow read: if true;
+    }
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "entities": {
+    "Employee": {
+      "title": "Employee",
+      "description": "พนักงานขายประจำแผนกสี",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "nickname": { "type": "string", "maxLength": 50 },
+        "brand": { "type": "string", "maxLength": 100 },
+        "brandCode": { "type": "string", "maxLength": 20 },
+        "active": { "type": "boolean" },
+        "avatarColor": { "type": "string", "maxLength": 30 },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "maxLength": 100 },
+        "updatedAt": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "name", "active"]
+    },
+    "Brand": {
+      "title": "Brand",
+      "description": "ข้อมูลแบรนด์สีที่จำหน่าย",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "code": { "type": "string", "minLength": 1, "maxLength": 20 },
+        "color": { "type": "string", "maxLength": 30 }
+      },
+      "required": ["id", "name", "code", "color"]
+    },
+    "QueueEntry": {
+      "title": "QueueEntry",
+      "description": "รายการคิวพนักงานในแต่ละฝั่ง",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "employeeId": { "type": "string", "maxLength": 128 },
+        "employeeName": { "type": "string", "maxLength": 100 },
+        "brandCode": { "type": "string", "maxLength": 20 },
+        "brandColor": { "type": "string", "maxLength": 30 },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "side": { "type": "string", "enum": ["LEFT", "RIGHT"] },
+        "status": { "type": "string", "enum": ["WAITING", "NEXT", "SERVING"] },
+        "enteredAt": { "type": "string", "maxLength": 100 },
+        "servedAt": { "type": "string", "maxLength": 100 },
+        "handledTimeSeconds": { "type": "number" },
+        "callCount": { "type": "number" }
+      },
+      "required": ["id", "employeeId", "employeeName", "side", "status", "enteredAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "ประวัติการกระทำและตรวจสอบคิวเพื่อความโปร่งใส",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string", "maxLength": 100 },
+        "action": { "type": "string", "maxLength": 50 },
+        "employeeId": { "type": "string", "maxLength": 128 },
+        "employeeName": { "type": "string", "maxLength": 100 },
+        "side": { "type": "string", "enum": ["LEFT", "RIGHT"] },
+        "machineId": { "type": "string", "maxLength": 50 },
+        "details": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["id", "timestamp", "action", "machineId", "details"]
+    },
+    "SystemState": {
+      "title": "SystemState",
+      "description": "สถานะระบบรวม การสลับฝั่ง และธีม",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "lastDailyResetDate": { "type": "string", "maxLength": 50 },
+        "themeSwapped": { "type": "boolean" },
+        "activeThemeId": { "type": "string", "maxLength": 50 },
+        "updatedAt": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id"]
+    }
+  },
+  "firestore": {
+    "/employees/{employeeId}": {
+      "schema": "Employee",
+      "description": "รายชื่อพนักงานทั้งหมดในแผนกสีที่บันทึกไว้ถาวร"
+    },
+    "/brands/{brandId}": {
+      "schema": "Brand",
+      "description": "ข้อมูลแบรนด์สีที่พนักงานสังกัด"
+    },
+    "/queueEntries/{entryId}": {
+      "schema": "QueueEntry",
+      "description": "คิวปัจจุบันทั้งฝั่ง LEFT และ RIGHT"
+    },
+    "/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "บันทึกประวัติการกระทำเพื่อตรวจสอบย้อนหลัง"
+    },
+    "/systemState/{stateId}": {
+      "schema": "SystemState",
+      "description": "ข้อมูลสถานะระบบและการกำหนดค่าการสลับฝั่ง"
+    }
+  }
+}

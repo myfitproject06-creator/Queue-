@@ -1,22 +1,271 @@
 {
-  "employees": [],
+  "employees": [
+    {
+      "id": "emp_1790125475325",
+      "name": "โอม",
+      "brand": "NIPPON",
+      "brandCode": "NPT",
+      "active": true,
+      "avatarColor": "#0284c7"
+    },
+    {
+      "id": "emp_1790125522309",
+      "name": "ทรโจนท",
+      "brand": "DELTA",
+      "brandCode": "DLT",
+      "active": true,
+      "avatarColor": "#0d9488"
+    }
+  ],
   "brands": [
-    { "id": "b_toa", "name": "TOA", "code": "TOA", "color": "#2563eb" },
-    { "id": "b_beger", "name": "BEGER", "code": "BGR", "color": "#ea580c" },
-    { "id": "b_nippon", "name": "NIPPON", "code": "NPT", "color": "#dc2626" },
-    { "id": "b_captain", "name": "CAPTAIN", "code": "CPT", "color": "#0284c7" },
-    { "id": "b_jotun", "name": "JOTUN", "code": "JTN", "color": "#d97706" },
-    { "id": "b_dulux", "name": "DULUX", "code": "DLX", "color": "#7c3aed" },
-    { "id": "b_delta", "name": "DELTA", "code": "DLT", "color": "#10b981" },
-    { "id": "b_jbp", "name": "JBP", "code": "JBP", "color": "#16a34a" },
-    { "id": "b_woodtect", "name": "WOODTECT", "code": "WDT", "color": "#854d0e" }
+    {
+      "id": "b_toa",
+      "name": "TOA",
+      "code": "TOA",
+      "color": "#2563eb"
+    },
+    {
+      "id": "b_beger",
+      "name": "BEGER",
+      "code": "BGR",
+      "color": "#ea580c"
+    },
+    {
+      "id": "b_nippon",
+      "name": "NIPPON",
+      "code": "NPT",
+      "color": "#dc2626"
+    },
+    {
+      "id": "b_captain",
+      "name": "CAPTAIN",
+      "code": "CPT",
+      "color": "#0284c7"
+    },
+    {
+      "id": "b_jotun",
+      "name": "JOTUN",
+      "code": "JTN",
+      "color": "#d97706"
+    },
+    {
+      "id": "b_dulux",
+      "name": "DULUX",
+      "code": "DLX",
+      "color": "#7c3aed"
+    },
+    {
+      "id": "b_delta",
+      "name": "DELTA",
+      "code": "DLT",
+      "color": "#10b981"
+    },
+    {
+      "id": "b_jbp",
+      "name": "JBP",
+      "code": "JBP",
+      "color": "#16a34a"
+    },
+    {
+      "id": "b_woodtect",
+      "name": "WOODTECT",
+      "code": "WDT",
+      "color": "#854d0e"
+    }
   ],
   "leftQueue": [],
-  "rightQueue": [],
-  "lastSwitch": null,
-  "lastSwitchUndoSnapshot": null,
-  "themeSwapped": false,
+  "rightQueue": [
+    {
+      "id": "q_1790125540987_o5a8",
+      "employeeId": "emp_1790125522309",
+      "employeeName": "ทรโจนท",
+      "employeeBrand": "DELTA",
+      "employeeBrandCode": "DLT",
+      "employeeAvatarColor": "#0d9488",
+      "side": "RIGHT",
+      "status": "NEXT",
+      "enteredAt": "2026-09-23T01:05:40.987Z"
+    },
+    {
+      "id": "q_1790125622819_bm75",
+      "employeeId": "emp_1790125475325",
+      "employeeName": "โอม",
+      "employeeBrand": "NIPPON",
+      "employeeBrandCode": "NPT",
+      "employeeAvatarColor": "#0284c7",
+      "side": "RIGHT",
+      "status": "WAITING",
+      "enteredAt": "2026-09-23T01:07:02.819Z"
+    }
+  ],
+  "lastSwitch": {
+    "switchedAt": "2026-09-23T00:59:57.232Z",
+    "machineId": "PC_RIGHT",
+    "leftCountBefore": 0,
+    "rightCountBefore": 0
+  },
+  "lastSwitchUndoSnapshot": {
+    "leftQueue": [],
+    "rightQueue": [],
+    "themeSwapped": false,
+    "timestamp": "2026-09-23T00:59:57.232Z"
+  },
+  "themeSwapped": true,
   "auditLogs": [
+    {
+      "action": "DEVICE_REVOKED",
+      "machineId": "PC_LEFT",
+      "details": "🚫 ถอนการอนุญาตเครื่อง LEFT-01 (ฝั่ง LEFT) แล้ว จะไม่สามารถเข้าถึงคิวได้อีก",
+      "id": "log_1790126810598_ek75",
+      "timestamp": "2026-09-23T01:26:50.598Z"
+    },
+    {
+      "action": "DEVICE_REGISTERED",
+      "machineId": "PC_RIGHT",
+      "details": "🔑 ลงทะเบียนเครื่อง RIGHT-02 (ฝั่ง RIGHT) สำเร็จ ได้รับสิทธิ์ใช้งานระบบ Queue",
+      "id": "log_1790126809567_n1n3",
+      "timestamp": "2026-09-23T01:26:49.567Z"
+    },
+    {
+      "action": "UNAUTHORIZED_API_REQUEST",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธคำขอ (403 ACCESS DENIED): GET /api/brands (IP: 127.0.0.1)",
+      "id": "log_1790126717207_zgs3",
+      "timestamp": "2026-09-23T01:25:17.207Z"
+    },
+    {
+      "action": "UNAUTHORIZED_API_REQUEST",
+      "machineId": "PC_LEFT",
+      "details": "ปฏิเสธคำขอ (403 ACCESS DENIED): GET /api/employees (IP: 127.0.0.1)",
+      "id": "log_1790126717191_76za",
+      "timestamp": "2026-09-23T01:25:17.191Z"
+    },
+    {
+      "action": "DEVICE_REVOKED",
+      "machineId": "PC_RIGHT",
+      "details": "🚫 ถอนการอนุญาตเครื่อง RIGHT-01 (ฝั่ง RIGHT) แล้ว จะไม่สามารถเข้าถึงคิวได้อีก",
+      "id": "log_1790126008859_dauh",
+      "timestamp": "2026-09-23T01:13:28.859Z"
+    },
+    {
+      "action": "RETURN_QUEUE",
+      "employeeId": "emp_1790125522309",
+      "employeeName": "ทรโจนท",
+      "side": "RIGHT",
+      "machineId": "PC_RIGHT",
+      "details": "↩ คืนคิว ทรโจนท กลับสู่คิวรอลำดับแรก (กรณีขึ้นคิวผิด) โดย PC_RIGHT • เหตุผล: ขึ้นคิวผิด / กดผิดพลาด",
+      "id": "log_1790125808746_lqvi",
+      "timestamp": "2026-09-23T01:10:08.746Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_1790125522309",
+      "employeeName": "ทรโจนท",
+      "side": "RIGHT",
+      "machineId": "PC_RIGHT",
+      "details": "🔥 ขึ้นคิวบริการลูกค้า (ฝั่ง RIGHT)",
+      "id": "log_1790125791440_c1oz",
+      "timestamp": "2026-09-23T01:09:51.440Z"
+    },
+    {
+      "action": "COMPLETE_SERVICE",
+      "employeeId": "emp_1790125475325",
+      "employeeName": "โอม",
+      "side": "RIGHT",
+      "machineId": "PC_RIGHT",
+      "details": "จบคิวเรียบร้อย (ใช้เวลา 1 นาที 15 วินาที) ➔ ต่อท้ายคิวอัตโนมัติ",
+      "id": "log_1790125622819_mqi6",
+      "timestamp": "2026-09-23T01:07:02.819Z"
+    },
+    {
+      "action": "RETURN_QUEUE",
+      "employeeId": "emp_1790125522309",
+      "employeeName": "ทรโจนท",
+      "side": "RIGHT",
+      "machineId": "PC_RIGHT",
+      "details": "↩ คืนคิว ทรโจนท กลับสู่คิวรอลำดับแรก (กรณีขึ้นคิวผิด) โดย PC_RIGHT • เหตุผล: ขึ้นคิวผิด / กดผิดพลาด",
+      "id": "log_1790125563380_8rb4",
+      "timestamp": "2026-09-23T01:06:03.380Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_1790125522309",
+      "employeeName": "ทรโจนท",
+      "side": "RIGHT",
+      "machineId": "PC_RIGHT",
+      "details": "🔥 ขึ้นคิวบริการลูกค้า (ฝั่ง RIGHT)",
+      "id": "log_1790125558295_h4kn",
+      "timestamp": "2026-09-23T01:05:58.295Z"
+    },
+    {
+      "action": "START_SERVICE",
+      "employeeId": "emp_1790125475325",
+      "employeeName": "โอม",
+      "side": "RIGHT",
+      "machineId": "PC_RIGHT",
+      "details": "🔥 ขึ้นคิวบริการลูกค้า (ฝั่ง RIGHT)",
+      "id": "log_1790125547773_d1so",
+      "timestamp": "2026-09-23T01:05:47.773Z"
+    },
+    {
+      "action": "ENQUEUE",
+      "employeeId": "emp_1790125522309",
+      "employeeName": "ทรโจนท",
+      "side": "RIGHT",
+      "machineId": "PC_RIGHT",
+      "details": "ลงคิวฝั่ง RIGHT สำเร็จ",
+      "id": "log_1790125540987_5n13",
+      "timestamp": "2026-09-23T01:05:40.987Z"
+    },
+    {
+      "action": "ENQUEUE",
+      "employeeId": "emp_1790125475325",
+      "employeeName": "โอม",
+      "side": "RIGHT",
+      "machineId": "PC_RIGHT",
+      "details": "ลงคิวฝั่ง RIGHT สำเร็จ",
+      "id": "log_1790125532696_1zzd",
+      "timestamp": "2026-09-23T01:05:32.696Z"
+    },
+    {
+      "action": "EMPLOYEE_ADDED",
+      "employeeId": "emp_1790125522309",
+      "employeeName": "ทรโจนท",
+      "machineId": "PC_RIGHT",
+      "details": "เพิ่มพนักงานใหม่: ทรโจนท (DLT)",
+      "id": "log_1790125522309_58cu",
+      "timestamp": "2026-09-23T01:05:22.309Z"
+    },
+    {
+      "action": "EMPLOYEE_ADDED",
+      "employeeId": "emp_1790125475325",
+      "employeeName": "โอม",
+      "machineId": "PC_RIGHT",
+      "details": "เพิ่มพนักงานใหม่: โอม (NPT)",
+      "id": "log_1790125475325_1wwl",
+      "timestamp": "2026-09-23T01:04:35.325Z"
+    },
+    {
+      "action": "SWITCH_SIDES",
+      "machineId": "PC_RIGHT",
+      "details": "🔄 สลับฝั่งสำเร็จ: LEFT (0 คน) ↔ RIGHT (0 คน) พร้อมสลับธีมประจำฝั่ง",
+      "id": "log_1790125197232_rvh5",
+      "timestamp": "2026-09-23T00:59:57.232Z"
+    },
+    {
+      "action": "DEVICE_REGISTERED",
+      "machineId": "PC_RIGHT",
+      "details": "🔑 ลงทะเบียนเครื่อง RIGHT-01 (ฝั่ง RIGHT) สำเร็จ ได้รับสิทธิ์ใช้งานระบบ Queue",
+      "id": "log_1790124344050_z080",
+      "timestamp": "2026-09-23T00:45:44.050Z"
+    },
+    {
+      "action": "SYSTEM_RESET",
+      "machineId": "PC_LEFT",
+      "details": "🌅 รีเซตคิวอัตโนมัติเมื่อขึ้นวันใหม่ (2026-09-23) ล้างคิวค้างวันก่อนหน้า (2026-09-22) [ฝั่งซ้าย: 0 คิว, ฝั่งขวา: 0 คิว]",
+      "id": "log_1790124208084_fh8d",
+      "timestamp": "2026-09-23T00:43:28.084Z"
+    },
     {
       "id": "log_init_clean",
       "timestamp": "2026-09-22T13:30:00.000Z",
@@ -31,13 +280,37 @@
       "deviceId": "LEFT-01",
       "side": "LEFT",
       "tokenHash": "2415e4b54cac6803d695c2c32820fbaa1e818d4030dce95304da3167f1c5d3d0",
-      "status": "AUTHORIZED",
+      "status": "REVOKED",
       "createdAt": "2026-09-22T12:56:03.212Z",
       "lastSeenAt": "2026-09-22T13:31:19.210Z",
       "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36",
-      "ip": "2001:fb1:112:f69b:790c:4d51:2058:9a66, 169.254.169.126"
+      "ip": "2001:fb1:112:f69b:790c:4d51:2058:9a66, 169.254.169.126",
+      "revokedAt": "2026-09-23T01:26:50.598Z"
+    },
+    {
+      "id": "dev_1790124344050_la1u",
+      "deviceId": "RIGHT-01",
+      "side": "RIGHT",
+      "tokenHash": "cec132e09c44b0a9519cb8fab39d3bdf34884d4d37516e724826fd8a210cfd56",
+      "status": "REVOKED",
+      "createdAt": "2026-09-23T00:45:44.050Z",
+      "lastSeenAt": "2026-09-23T01:13:25.652Z",
+      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36",
+      "ip": "110.49.3.42, 169.254.169.126",
+      "revokedAt": "2026-09-23T01:13:28.859Z"
+    },
+    {
+      "id": "dev_1790126809567_l2jh",
+      "deviceId": "RIGHT-02",
+      "side": "RIGHT",
+      "tokenHash": "3cbfd3e818a921a697c4070197b4459ce6a86f8c774b36010022a8af3f7060fb",
+      "status": "AUTHORIZED",
+      "createdAt": "2026-09-23T01:26:49.567Z",
+      "lastSeenAt": "2026-09-23T01:26:49.751Z",
+      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36",
+      "ip": "110.49.3.42, 169.254.169.126"
     }
   ],
-  "lastDailyResetDate": "2026-09-22",
+  "lastDailyResetDate": "2026-09-23",
   "activeThemeId": "demon-slayer"
 }

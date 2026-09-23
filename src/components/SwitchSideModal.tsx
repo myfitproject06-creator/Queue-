@@ -7,6 +7,7 @@ interface SwitchSideModalProps {
   leftQueue: QueueEntry[];
   rightQueue: QueueEntry[];
   machineId: MachineId;
+  themeSwapped?: boolean;
   onClose: () => void;
   onConfirmSwitch: () => Promise<void>;
 }
@@ -16,6 +17,7 @@ export const SwitchSideModal: React.FC<SwitchSideModalProps> = ({
   leftQueue,
   rightQueue,
   machineId,
+  themeSwapped = false,
   onClose,
   onConfirmSwitch,
 }) => {
@@ -40,6 +42,12 @@ export const SwitchSideModal: React.FC<SwitchSideModalProps> = ({
   const leftServing = leftQueue.filter((q) => q.status === 'SERVING');
   const rightServing = rightQueue.filter((q) => q.status === 'SERVING');
   const hasServing = leftServing.length > 0 || rightServing.length > 0;
+
+  // Current side team labels
+  const currentLeftTeam = themeSwapped ? '🔵 ทีมน้ำเงิน' : '🔴 ทีมแดง';
+  const currentRightTeam = themeSwapped ? '🔴 ทีมแดง' : '🔵 ทีมน้ำเงิน';
+  const nextLeftTeam = themeSwapped ? '🔴 ทีมแดง' : '🔵 ทีมน้ำเงิน';
+  const nextRightTeam = themeSwapped ? '🔵 ทีมน้ำเงิน' : '🔴 ทีมแดง';
 
   return (
     <div
@@ -101,10 +109,10 @@ export const SwitchSideModal: React.FC<SwitchSideModalProps> = ({
         <div className="grid grid-cols-2 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 my-4 text-xs">
           {/* Left -> Right */}
           <div className="border-r border-slate-800 pr-3">
-            <div className="font-semibold text-red-400 flex items-center gap-1 mb-1">
-              <span>🔴 ทีมแดง LEFT ({leftQueue.length} คน)</span>
+            <div className={`font-semibold flex items-center gap-1 mb-1 ${themeSwapped ? 'text-blue-400' : 'text-red-400'}`}>
+              <span>{currentLeftTeam} (คอม 1 / LEFT) [{leftQueue.length} คน]</span>
             </div>
-            <div className="text-slate-400 mb-2">➔ จะย้ายไปเป็น 🔵 ทีมน้ำเงิน RIGHT:</div>
+            <div className="text-slate-400 mb-2">➔ จะย้ายไปเป็น {nextRightTeam} (คอม 2 / RIGHT):</div>
             <div className="space-y-1 max-h-28 overflow-y-auto">
               {leftQueue.length > 0 ? (
                 leftQueue.map((q, idx) => (
@@ -121,10 +129,10 @@ export const SwitchSideModal: React.FC<SwitchSideModalProps> = ({
 
           {/* Right -> Left */}
           <div className="pl-2">
-            <div className="font-semibold text-blue-400 flex items-center gap-1 mb-1">
-              <span>🔵 ทีมน้ำเงิน RIGHT ({rightQueue.length} คน)</span>
+            <div className={`font-semibold flex items-center gap-1 mb-1 ${themeSwapped ? 'text-red-400' : 'text-blue-400'}`}>
+              <span>{currentRightTeam} (คอม 2 / RIGHT) [{rightQueue.length} คน]</span>
             </div>
-            <div className="text-slate-400 mb-2">➔ จะย้ายไปเป็น 🔴 ทีมแดง LEFT:</div>
+            <div className="text-slate-400 mb-2">➔ จะย้ายไปเป็น {nextLeftTeam} (คอม 1 / LEFT):</div>
             <div className="space-y-1 max-h-28 overflow-y-auto">
               {rightQueue.length > 0 ? (
                 rightQueue.map((q, idx) => (

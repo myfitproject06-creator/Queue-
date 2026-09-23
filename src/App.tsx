@@ -121,6 +121,9 @@ export default function App() {
       setIsAuthorized(data.authorized);
       setAuthorizedDevice(data.device || null);
       setRegisteredDevices(data.registeredDevices || []);
+      if (data.themeSwapped !== undefined) {
+        setThemeSwapped(!!data.themeSwapped);
+      }
 
       if (data.authorized && data.device?.side) {
         setMachineSide(data.device.side);
@@ -750,15 +753,18 @@ export default function App() {
       <>
         <UnauthorizedScreen
           registeredDevices={registeredDevices}
+          themeSwapped={themeSwapped}
           onOpenPairModal={() => setIsPairModalOpen(true)}
           onRefresh={checkAuth}
           isChecking={isCheckingAuth}
+          onRevokedSuccess={checkAuth}
         />
         <PairDeviceModal
           isOpen={isPairModalOpen}
           onClose={() => setIsPairModalOpen(false)}
           onPairedSuccess={handlePairedSuccess}
           registeredDevices={registeredDevices}
+          themeSwapped={themeSwapped}
         />
       </>
     );
@@ -786,6 +792,7 @@ export default function App() {
         lastSwitch={lastSwitch}
         canUndoSwitch={canUndoSwitch}
         onUndoSwitch={handleUndoSwitch}
+        themeSwapped={themeSwapped}
         authorizedDevice={authorizedDevice}
         onOpenDeviceManagement={() => setIsDeviceManagementOpen(true)}
       />
@@ -819,7 +826,6 @@ export default function App() {
           onOpenRemove={(entry) => setRemoveTargetEntry(entry)}
           onOpenMoveQueue={handleOpenMoveQueue}
           onDragReorderQueue={handleConfirmMoveQueue}
-          onChangeMachineSide={() => setIsMachineModalOpen(true)}
         />
       </main>
 
@@ -890,6 +896,7 @@ export default function App() {
         leftQueue={leftQueue}
         rightQueue={rightQueue}
         machineId={activeMachine}
+        themeSwapped={themeSwapped}
         onClose={() => setIsSwitchSidesOpen(false)}
         onConfirmSwitch={handleSwitchSides}
       />

@@ -4,6 +4,20 @@ import path from 'path';
 import crypto from 'crypto';
 import cookieParser from 'cookie-parser';
 import { createServer as createViteServer } from 'vite';
+import { initializeApp as initFirebaseApp } from 'firebase/app';
+import {
+  getFirestore as getFirebaseFirestore,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  collection,
+  setLogLevel,
+} from 'firebase/firestore';
+
+// Silence idle stream and internal gRPC warning logs from Firestore Node client
+setLogLevel('error');
 import {
   AuditLogEntry,
   AuthorizedDevice,
@@ -20,6 +34,21 @@ const DB_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DB_DIR, 'queue_db.json');
 const UPLOADS_DIR = path.join(DB_DIR, 'uploads');
 const SETUP_PAIRING_CODE = process.env.SETUP_PAIRING_CODE || 'PQ-CENTRAL-2026';
+
+let firestoreDb: any = null;
+try {
+  const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+  if (fs.existsSync(configPath)) {
+    const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    if (firebaseConfig && firebaseConfig.apiKey) {
+      const fbApp = initFirebaseApp(firebaseConfig, 'paint-queue-server');
+      firestoreDb = getFirebaseFirestore(fbApp, firebaseConfig.firestoreDatabaseId);
+      console.log('✅ Firebase Firestore connected successfully on server (DB ID: ' + firebaseConfig.firestoreDatabaseId + ')');
+    }
+  }
+} catch (err) {
+  console.warn('Firebase initialization warning in server:', err);
+}
 
 export interface StoredDeviceRecord extends AuthorizedDevice {
   tokenHash: string; // SHA-256 hash of device token
@@ -50,6 +79,7 @@ interface DatabaseSchema {
     timestamp: string;
   } | null;
   lastDailyResetDate?: string;
+  lastAutoSwitchDate?: string | null;
   activeThemeId?: string;
   themeSwapped?: boolean;
   auditLogs: AuditLogEntry[];
@@ -81,8 +111,55 @@ function getInitialState(): DatabaseSchema {
 
 let db: DatabaseSchema = getInitialState();
 
+let isSyncingToFirestore = false;
+let syncPending = false;
+
+async function syncToFirestore() {
+  if (!firestoreDb) return;
+  if (isSyncingToFirestore) {
+    syncPending = true;
+    return;
+  }
+  isSyncingToFirestore = true;
+  syncPending = false;
+
+  try {
+    // 1. Sync Employees
+    for (const emp of db.employees) {
+      await setDoc(doc(firestoreDb, 'employees', emp.id), emp, { merge: true });
+    }
+
+    // 2. Sync Brands
+    for (const b of db.brands) {
+      await setDoc(doc(firestoreDb, 'brands', b.id), b, { merge: true });
+    }
+
+    // 3. Sync System State
+    await setDoc(
+      doc(firestoreDb, 'systemState', 'current'),
+      {
+        id: 'current',
+        lastDailyResetDate: db.lastDailyResetDate || getBangkokDateString(),
+        themeSwapped: !!db.themeSwapped,
+        activeThemeId: db.activeThemeId || 'demon-slayer',
+        lastSwitch: db.lastSwitch || null,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (e) {
+    console.error('Error persisting to Firestore:', e);
+  } finally {
+    isSyncingToFirestore = false;
+    if (syncPending) {
+      syncPending = false;
+      setTimeout(syncToFirestore, 1000);
+    }
+  }
+}
+
 // Ensure DB directory and load or save
-function initDatabase() {
+async function initDatabase() {
   try {
     if (!fs.existsSync(DB_DIR)) {
       fs.mkdirSync(DB_DIR, { recursive: true });
@@ -90,62 +167,113 @@ function initDatabase() {
     if (!fs.existsSync(UPLOADS_DIR)) {
       fs.mkdirSync(UPLOADS_DIR, { recursive: true });
     }
+
+    // Step 1: Load local cache from DB_FILE if present
     if (fs.existsSync(DB_FILE)) {
-      const data = fs.readFileSync(DB_FILE, 'utf-8');
-      db = JSON.parse(data);
-      console.log('Loaded database from', DB_FILE);
-
-      let modified = false;
-
-      // Ensure employees array exists
-      if (!Array.isArray(db.employees)) {
-        db.employees = [];
-        modified = true;
+      try {
+        const data = fs.readFileSync(DB_FILE, 'utf-8');
+        db = JSON.parse(data);
+        console.log('Loaded database from', DB_FILE);
+      } catch (e) {
+        console.warn('Could not read local DB_FILE:', e);
       }
-
-      // Ensure brands array exists
-      if (!Array.isArray(db.brands) || db.brands.length === 0) {
-        db.brands = JSON.parse(JSON.stringify(DEFAULT_BRANDS));
-        modified = true;
-      }
-
-      // Ensure themeSwapped exists
-      if (typeof db.themeSwapped !== 'boolean') {
-        db.themeSwapped = false;
-        modified = true;
-      }
-
-      if (!Array.isArray(db.leftQueue)) {
-        db.leftQueue = [];
-        modified = true;
-      }
-
-      if (!Array.isArray(db.rightQueue)) {
-        db.rightQueue = [];
-        modified = true;
-      }
-
-      if (!Array.isArray(db.devices)) {
-        db.devices = [];
-        modified = true;
-      }
-
-      if (!db.activeThemeId) {
-        db.activeThemeId = 'demon-slayer';
-        modified = true;
-      }
-
-      if (modified) {
-        saveDatabase();
-      }
-      // Ensure daily reset check runs on startup
-      checkAndPerformDailyReset('SERVER_BOOT');
-    } else {
-      db.lastDailyResetDate = getBangkokDateString();
-      db.activeThemeId = 'demon-slayer';
-      saveDatabase();
-      console.log('Initialized new database at', DB_FILE);
     }
+
+    // Step 2: Sync from Firebase Firestore (Permanent Cloud Store)
+    if (firestoreDb) {
+      try {
+        console.log('🔄 Connecting to Cloud Firestore for permanent storage...');
+
+        // 2.1 Load permanent Employees
+        const empSnap = await getDocs(collection(firestoreDb, 'employees'));
+        if (!empSnap.empty) {
+          const cloudEmployees: Employee[] = [];
+          empSnap.forEach((d) => {
+            const data = d.data() as Employee;
+            cloudEmployees.push(data);
+          });
+          db.employees = cloudEmployees;
+          console.log(`✅ Loaded ${cloudEmployees.length} permanent employees from Firestore`);
+        } else if (db.employees && db.employees.length > 0) {
+          console.log(`Seeding ${db.employees.length} employees to Firestore...`);
+          for (const emp of db.employees) {
+            await setDoc(doc(firestoreDb, 'employees', emp.id), emp);
+          }
+        }
+
+        // 2.2 Load Brands
+        const brandSnap = await getDocs(collection(firestoreDb, 'brands'));
+        if (!brandSnap.empty) {
+          const cloudBrands: BrandItem[] = [];
+          brandSnap.forEach((d) => {
+            cloudBrands.push(d.data() as BrandItem);
+          });
+          db.brands = cloudBrands;
+        } else if (db.brands && db.brands.length > 0) {
+          for (const brand of db.brands) {
+            await setDoc(doc(firestoreDb, 'brands', brand.id), brand);
+          }
+        }
+
+        // 2.3 Load System State
+        const stateDoc = await getDoc(doc(firestoreDb, 'systemState', 'current'));
+        if (stateDoc.exists()) {
+          const sData = stateDoc.data();
+          if (typeof sData.themeSwapped === 'boolean') db.themeSwapped = sData.themeSwapped;
+          if (sData.lastDailyResetDate) db.lastDailyResetDate = sData.lastDailyResetDate;
+          if (sData.lastSwitch) db.lastSwitch = sData.lastSwitch;
+          if (sData.activeThemeId) db.activeThemeId = sData.activeThemeId;
+        }
+      } catch (cloudErr) {
+        console.error('⚠️ Firestore startup sync notice (continuing with local cache):', cloudErr);
+      }
+    }
+
+    let modified = false;
+
+    // Ensure employees array exists
+    if (!Array.isArray(db.employees)) {
+      db.employees = [];
+      modified = true;
+    }
+
+    // Ensure brands array exists
+    if (!Array.isArray(db.brands) || db.brands.length === 0) {
+      db.brands = JSON.parse(JSON.stringify(DEFAULT_BRANDS));
+      modified = true;
+    }
+
+    // Ensure themeSwapped exists
+    if (typeof db.themeSwapped !== 'boolean') {
+      db.themeSwapped = false;
+      modified = true;
+    }
+
+    if (!Array.isArray(db.leftQueue)) {
+      db.leftQueue = [];
+      modified = true;
+    }
+
+    if (!Array.isArray(db.rightQueue)) {
+      db.rightQueue = [];
+      modified = true;
+    }
+
+    if (!Array.isArray(db.devices)) {
+      db.devices = [];
+      modified = true;
+    }
+
+    if (!db.activeThemeId) {
+      db.activeThemeId = 'demon-slayer';
+      modified = true;
+    }
+
+    if (modified) {
+      saveDatabase();
+    }
+    // Ensure daily reset check runs on startup
+    checkAndPerformDailyReset('SERVER_BOOT');
   } catch (err) {
     console.error('Error initializing database, using in-memory state:', err);
   }
@@ -159,6 +287,11 @@ function saveDatabase() {
   } catch (err) {
     console.error('Failed to save database file:', err);
   }
+
+  // Trigger Cloud Firestore persistence
+  syncToFirestore().catch((err) => {
+    console.warn('Background Firestore persistence warning:', err);
+  });
 }
 
 // Compute dynamic statuses for a queue
@@ -215,6 +348,19 @@ function getBangkokDateString(d: Date = new Date()): string {
   }
 }
 
+function getBangkokHour(): number {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Bangkok',
+      hour: 'numeric',
+      hour12: false,
+    });
+    return parseInt(formatter.format(new Date()), 10);
+  } catch {
+    return new Date().getHours();
+  }
+}
+
 // Automatic Daily Queue Reset when reaching a new day (00:00 Bangkok time)
 function checkAndPerformDailyReset(triggeredBy: string = 'SCHEDULED_CHECK'): boolean {
   const todayStr = getBangkokDateString();
@@ -239,12 +385,75 @@ function checkAndPerformDailyReset(triggeredBy: string = 'SCHEDULED_CHECK'): boo
     db.lastSwitch = null;
     db.lastSwitchUndoSnapshot = null;
     db.themeSwapped = false;
+    db.lastAutoSwitchDate = null;
     db.lastDailyResetDate = todayStr;
 
     addAuditLog({
       action: 'SYSTEM_RESET',
       machineId: 'PC_LEFT',
       details: `🌅 รีเซตคิวอัตโนมัติเมื่อขึ้นวันใหม่ (${todayStr}) ล้างคิวค้างวันก่อนหน้า (${previousDate}) [ฝั่งซ้าย: ${leftCount} คิว, ฝั่งขวา: ${rightCount} คิว]`,
+    });
+
+    saveDatabase();
+    broadcastQueueState();
+    return true;
+  }
+
+  return false;
+}
+
+// Automatic 12:00 Side Switch (🕛 สลับฝั่งอัตโนมัติประจำวันเวลา 12:00 น.)
+function checkAndPerformAutoNoonSwitch(): boolean {
+  const todayStr = getBangkokDateString();
+  const currentHour = getBangkokHour();
+
+  // If time is 12:00 or later, and today hasn't auto-switched yet, and theme is not yet swapped
+  if (currentHour >= 12 && db.lastAutoSwitchDate !== todayStr && !db.themeSwapped) {
+    const leftCountBefore = db.leftQueue.length;
+    const rightCountBefore = db.rightQueue.length;
+
+    console.log(
+      `🕛 [PAINT QUEUE] Automatic 12:00 Side Switch triggered (${todayStr}, hour: ${currentHour}): LEFT(${leftCountBefore}) ↔ RIGHT(${rightCountBefore})`
+    );
+
+    // Save snapshot for undo
+    db.lastSwitchUndoSnapshot = {
+      leftQueue: JSON.parse(JSON.stringify(db.leftQueue)),
+      rightQueue: JSON.parse(JSON.stringify(db.rightQueue)),
+      themeSwapped: db.themeSwapped,
+      timestamp: new Date().toISOString(),
+    };
+
+    // ATOMIC SWAP:
+    const newRightQueue = db.leftQueue.map((entry) => ({
+      ...entry,
+      side: 'RIGHT' as Side,
+    }));
+    const newLeftQueue = db.rightQueue.map((entry) => ({
+      ...entry,
+      side: 'LEFT' as Side,
+    }));
+
+    db.leftQueue = newLeftQueue;
+    db.rightQueue = newRightQueue;
+
+    // Toggle theme: คอม 1 (LEFT) ➔ 🔵 ทีมน้ำเงิน, คอม 2 (RIGHT) ➔ 🔴 ทีมแดง
+    db.themeSwapped = true;
+    db.lastAutoSwitchDate = todayStr;
+
+    db.lastSwitch = {
+      switchedAt: new Date().toISOString(),
+      machineId: 'PC_LEFT',
+      leftCountBefore,
+      rightCountBefore,
+    };
+
+    recomputeQueues();
+
+    addAuditLog({
+      action: 'SWITCH_SIDES',
+      machineId: 'PC_LEFT',
+      details: `🕛 สลับฝั่งอัตโนมัติเวลา 12:00 น. สำเร็จ: คอม 1 (LEFT) ➔ 🔵 ทีมน้ำเงิน, คอม 2 (RIGHT) ➔ 🔴 ทีมแดง พร้อมสลับคิวพนักงาน [LEFT: ${leftCountBefore} ↔ RIGHT: ${rightCountBefore}]`,
     });
 
     saveDatabase();
@@ -378,7 +587,7 @@ function checkDeviceSidePermission(
 }
 
 async function startServer() {
-  initDatabase();
+  await initDatabase();
   recomputeQueues();
 
   const app = express();
@@ -386,6 +595,7 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: '35mb' }));
   app.use(cookieParser());
   app.use('/uploads', express.static(UPLOADS_DIR));
+  app.use(express.static(path.resolve(process.cwd(), 'public')));
 
   // SSE Real-time Endpoint (Protected: Only Authorized Central Machines receive queue stream)
   app.get('/api/queue/stream', (req: Request, res: Response) => {
@@ -413,6 +623,7 @@ async function startServer() {
 
     sseClients.add(res);
     checkAndPerformDailyReset('SSE_STREAM_CONNECT');
+    checkAndPerformAutoNoonSwitch();
     recomputeQueues();
 
     // Send initial snapshot with authorized device info
@@ -491,6 +702,7 @@ async function startServer() {
           lastSeenAt: rightDevice?.lastSeenAt,
         },
       ],
+      themeSwapped: !!db.themeSwapped,
       pairingCodeHint: 'รหัสติดตั้งสำหรับแอดมินหรือช่างประจำแผนก',
     });
   });
@@ -652,6 +864,7 @@ async function startServer() {
   // API: Get current queue state (Protected: Unauthorized devices get 403 Forbidden)
   app.get('/api/queue/state', requireDeviceAuth, (_req: Request, res: Response) => {
     checkAndPerformDailyReset('GET_STATE');
+    checkAndPerformAutoNoonSwitch();
     recomputeQueues();
     res.json({
       leftQueue: db.leftQueue,
@@ -1222,8 +1435,11 @@ async function startServer() {
     db.leftQueue = newLeftQueue;
     db.rightQueue = newRightQueue;
 
-    // Also toggle theme assigned to sides! (e.g. หน่วยพิฆาตอสูร ↔ สิบสองจันทราอสูร)
+    // Also toggle theme assigned to sides! (e.g. คอม 1 ➔ ทีมน้ำเงิน, คอม 2 ➔ ทีมแดง)
     db.themeSwapped = !db.themeSwapped;
+    if (db.themeSwapped) {
+      db.lastAutoSwitchDate = getBangkokDateString();
+    }
 
     db.lastSwitch = {
       switchedAt: new Date().toISOString(),
@@ -1556,6 +1772,11 @@ async function startServer() {
     });
 
     saveDatabase();
+    if (firestoreDb) {
+      deleteDoc(doc(firestoreDb, 'employees', id)).catch((e) =>
+        console.warn('Failed to delete employee from Firestore:', e)
+      );
+    }
     broadcastQueueState();
 
     res.json({ success: true, removedEmployee: removed });
@@ -1657,6 +1878,11 @@ async function startServer() {
     }
     const removed = db.brands.splice(idx, 1)[0];
     saveDatabase();
+    if (firestoreDb) {
+      deleteDoc(doc(firestoreDb, 'brands', id)).catch((e) =>
+        console.warn('Failed to delete brand from Firestore:', e)
+      );
+    }
     broadcastQueueState();
     res.json({ success: true, removedBrand: removed });
   });
@@ -1767,10 +1993,11 @@ async function startServer() {
     });
   }
 
-  // Background interval: Check every 30 seconds for automatic daily reset (midnight Bangkok time)
+  // Background interval: Check every 15 seconds for automatic daily reset (midnight Bangkok time) and auto 12:00 switch
   setInterval(() => {
     checkAndPerformDailyReset('SCHEDULED_TIMER');
-  }, 30000);
+    checkAndPerformAutoNoonSwitch();
+  }, 15000);
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`PAINT QUEUE Server running on http://0.0.0.0:${PORT}`);

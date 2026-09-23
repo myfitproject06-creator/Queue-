@@ -234,11 +234,11 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
     const servingEntries = queue.filter((q) => q.status === 'SERVING');
     const waitingEntries = queue.filter((q) => q.status !== 'SERVING');
 
-    const borderGlowClass = isLeft
+    const borderGlowClass = isThemedAsLeft
       ? 'border-red-500/50 shadow-xl shadow-red-950/30'
       : 'border-blue-500/50 shadow-xl shadow-blue-950/30';
 
-    const headerBgClass = isLeft
+    const headerBgClass = isThemedAsLeft
       ? 'bg-gradient-to-r from-red-950/90 via-slate-900 to-slate-900 border-b border-red-500/40'
       : 'bg-gradient-to-r from-blue-950/90 via-slate-900 to-slate-900 border-b border-blue-500/40';
 
@@ -246,7 +246,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
       <div
         id={`queue-side-${side.toLowerCase()}`}
         style={{
-          borderTop: isLeft ? '5px solid #dc2626' : '5px solid #2563eb',
+          borderTop: isThemedAsLeft ? '5px solid #dc2626' : '5px solid #2563eb',
         }}
         className={`flex-1 rounded-3xl border flex flex-col bg-slate-900/95 shadow-2xl overflow-hidden backdrop-blur-md transition-all ${borderGlowClass}`}
       >
@@ -256,30 +256,32 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
             {/* Side Indicator Badge */}
             <div
               className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black shadow-md border flex-shrink-0 ${
-                isLeft
+                isThemedAsLeft
                   ? 'bg-red-600 text-white border-red-400/40 shadow-red-600/30'
                   : 'bg-blue-600 text-white border-blue-400/40 shadow-blue-600/30'
               }`}
             >
               <span className="text-[9px] font-bold tracking-widest opacity-90 leading-none">
-                {isLeft ? 'ทีม' : 'ทีม'}
+                ทีม
               </span>
               <span className="text-base font-black leading-tight">
-                {isLeft ? 'RED' : 'BLUE'}
+                {isThemedAsLeft ? 'RED' : 'BLUE'}
               </span>
             </div>
 
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-2">
-                  <span className={isLeft ? 'text-red-300' : 'text-blue-300'}>
-                    {isLeft ? '🔴 ทีมแดง (LEFT)' : '🔵 ทีมน้ำเงิน (RIGHT)'}
+                  <span className={isThemedAsLeft ? 'text-red-300' : 'text-blue-300'}>
+                    {isThemedAsLeft
+                      ? `🔴 ทีมแดง (${isLeft ? 'คอม 1' : 'คอม 2'})`
+                      : `🔵 ทีมน้ำเงิน (${isLeft ? 'คอม 1' : 'คอม 2'})`}
                   </span>
                 </h2>
 
                 <span
                   className={`text-xs font-bold px-2.5 py-0.5 rounded-lg border shadow-sm ${
-                    isLeft
+                    isThemedAsLeft
                       ? 'bg-red-500/20 text-red-300 border-red-500/40'
                       : 'bg-blue-500/20 text-blue-300 border-blue-500/40'
                   }`}
@@ -290,7 +292,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                 {isSideEditable ? (
                   <span
                     className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm flex items-center gap-1.5 ${
-                      isLeft
+                      isThemedAsLeft
                         ? 'bg-red-500/20 text-red-300 border-red-500/40'
                         : 'bg-blue-500/20 text-blue-300 border-blue-500/40'
                     }`}
@@ -311,7 +313,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                   ทั้งหมด <strong className="text-white font-mono">{queue.length}</strong> คน
                 </span>
                 <span className="text-slate-600">•</span>
-                <span className={isLeft ? 'text-red-300 font-semibold' : 'text-blue-300 font-semibold'}>
+                <span className={isThemedAsLeft ? 'text-red-300 font-semibold' : 'text-blue-300 font-semibold'}>
                   กำลังผสม <strong>{servingEntries.length}</strong>
                 </span>
                 <span className="text-slate-600">•</span>
@@ -332,13 +334,13 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
               id={`btn-add-queue-${side.toLowerCase()}`}
               onClick={() => onOpenAddQueue(side)}
               className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm shadow-md active:scale-95 transition cursor-pointer text-white ${
-                isLeft
+                isThemedAsLeft
                   ? 'bg-red-600 hover:bg-red-500 shadow-red-600/30'
                   : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/30'
               }`}
             >
               <Plus className="w-4 h-4" />
-              <span>+ ลงคิว{isLeft ? 'ทีมแดง' : 'ทีมน้ำเงิน'} ({side})</span>
+              <span>+ ลงคิว{isThemedAsLeft ? 'ทีมแดง' : 'ทีมน้ำเงิน'} ({isLeft ? 'คอม 1' : 'คอม 2'})</span>
             </button>
           ) : (
             <div
@@ -610,7 +612,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 mb-2.5 border-b border-slate-800 gap-2">
               <div className="flex items-center gap-2">
                 <span className={`p-1.5 rounded-lg border ${
-                  isLeft
+                  isThemedAsLeft
                     ? 'bg-red-500/20 text-red-400 border-red-500/30'
                     : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
                 }`}>
@@ -620,7 +622,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                   <h3 className="text-sm font-black text-slate-200 uppercase tracking-wider flex items-center gap-2">
                     คิวรอรับลูกค้า
                     <span className={`border text-xs font-black px-2 py-0.5 rounded-full ${
-                      isLeft
+                      isThemedAsLeft
                         ? 'bg-red-950/80 text-red-300 border-red-500/40'
                         : 'bg-blue-950/80 text-blue-300 border-blue-500/40'
                     }`}>
@@ -667,9 +669,9 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                   <button
                     onClick={() => onOpenAddQueue(side)}
                     className={`mt-4 px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
-                      isLeft
-                        ? 'border-blue-500/40 text-blue-300 hover:bg-blue-950/60'
-                        : 'border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/60'
+                      isThemedAsLeft
+                        ? 'border-red-500/40 text-red-300 hover:bg-red-950/60'
+                        : 'border-blue-500/40 text-blue-300 hover:bg-blue-950/60'
                     }`}
                   >
                     + ลงคิวฝั่ง {side} ตอนนี้
@@ -810,10 +812,10 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                             : isThisDropTarget
                             ? 'ring-2 ring-cyan-400 border-cyan-400 shadow-xl shadow-cyan-950/60 bg-slate-800/90'
                             : isRankOne
-                            ? (isLeft
+                            ? (isThemedAsLeft
                                 ? 'bg-slate-850/95 border-2 border-red-500/70 shadow-md shadow-red-950/40 ring-1 ring-red-500/30'
                                 : 'bg-slate-850/95 border-2 border-blue-500/70 shadow-md shadow-blue-950/40 ring-1 ring-blue-500/30')
-                            : `bg-slate-900/75 border-slate-700/60 ${isLeft ? 'hover:border-red-500/40' : 'hover:border-blue-500/40'} hover:bg-slate-850/80`
+                            : `bg-slate-900/75 border-slate-700/60 ${isThemedAsLeft ? 'hover:border-red-500/40' : 'hover:border-blue-500/40'} hover:bg-slate-850/80`
                         }`}
                         style={{
                           borderLeft: `6px solid ${brandVisual.color}`,
@@ -887,10 +889,10 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                               <div
                                 className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center font-mono font-black text-sm sm:text-base shadow-inner flex-shrink-0 transition-transform ${
                                   isRankOne
-                                    ? (isLeft
+                                    ? (isThemedAsLeft
                                         ? 'bg-red-600 text-white shadow-red-800/50'
                                         : 'bg-blue-600 text-white shadow-blue-800/50')
-                                    : (isLeft
+                                    : (isThemedAsLeft
                                         ? 'bg-slate-950 text-red-300/90 border border-red-500/30'
                                         : 'bg-slate-950 text-blue-300/90 border border-blue-500/30')
                                 }`}
@@ -899,53 +901,28 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                               </div>
                             </div>
 
-                            {/* Profile Avatar Thumbnail - clickable to view full image */}
-                            <div
-                              className="relative flex-shrink-0 cursor-pointer group/thumb"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setViewerData({
-                                  imageUrl: entry.employeeAvatarUrl,
-                                  name: entry.employeeName,
-                                  nickname: entry.employeeNickname,
-                                  brand: entry.employeeBrand,
-                                  brandCode: entry.employeeBrandCode,
-                                  avatarColor: entry.employeeAvatarColor,
-                                  isServing: false,
-                                  side: entry.side,
-                                  statusText: `คิวรอลำดับที่ ${rankNumber} (รอมาแล้ว ${elapsedWaitMins} นาที)`,
-                                });
-                              }}
-                              title="คลิกเพื่อดูรูปภาพแบบเต็มๆ"
-                            >
-                              {entry.employeeAvatarUrl ? (
-                                <img
-                                  src={entry.employeeAvatarUrl}
-                                  alt={entry.employeeName}
-                                  style={{ borderColor: brandVisual.color }}
-                                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover border-2 shadow-sm group-hover/thumb:ring-2 group-hover/thumb:scale-105 transition"
-                                  onError={(e) => {
-                                    (e.target as HTMLElement).style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <div
-                                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-bold text-white text-xs shadow-sm border-2 group-hover/thumb:scale-105 transition"
-                                  style={{
-                                    backgroundColor: entry.employeeAvatarColor || brandVisual.color,
-                                    borderColor: brandVisual.color,
-                                  }}
-                                >
-                                  {entry.employeeNickname || entry.employeeName.charAt(0)}
-                                </div>
-                              )}
-                            </div>
+                            {/* Employee Info (No profile avatar in waiting queue card - shown only when SERVING) */}
 
                             {/* Employee Info */}
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="text-xs sm:text-sm font-bold text-white tracking-wide truncate">
                                   {entry.employeeName}
+                                </span>
+
+                                {/* Waiting Time Badge (แสดงเวลารอเป็นนาทีข้างๆ ชื่อพนักงาน) */}
+                                <span
+                                  className={`inline-flex items-center gap-1 text-[11px] sm:text-xs font-mono font-semibold px-2 py-0.5 rounded-md border flex-shrink-0 transition-colors ${
+                                    elapsedWaitMins >= 30
+                                      ? 'bg-rose-950/80 text-rose-300 border-rose-500/70 shadow-sm shadow-rose-950/60 font-bold animate-pulse'
+                                      : elapsedWaitMins >= 15
+                                      ? 'bg-amber-950/70 text-amber-300 border-amber-500/50 font-bold'
+                                      : 'bg-slate-800/90 text-sky-200 border-slate-700/80'
+                                  }`}
+                                  title={`เวลารอคิวปัจจุบัน: ${elapsedWaitMins} นาที (ลงคิวเมื่อ ${timeEnteredString} น.)`}
+                                >
+                                  <Clock className="w-3 h-3 text-current opacity-80" />
+                                  <span>{elapsedWaitMins === 0 ? 'รอ < 1 นาที' : `รอ ${elapsedWaitMins} นาที`}</span>
                                 </span>
 
                                 {/* High-Visibility Brand Badge */}
@@ -979,13 +956,15 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
 
                               {/* Compact Timestamp */}
                               <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-mono mt-0.5">
-                                <span className="text-slate-400">
-                                  รอ {elapsedWaitMins} น.
-                                </span>
-                                <span className="text-slate-600 hidden sm:inline">•</span>
-                                <span className="text-slate-500 hidden sm:inline text-[10px]">
+                                <span className="text-slate-400 text-[10px] sm:text-[11px]">
                                   ลงคิว {timeEnteredString} น.
                                 </span>
+                                {elapsedWaitMins >= 30 && (
+                                  <span className="text-[10px] text-rose-400 font-medium bg-rose-950/60 border border-rose-800/40 px-1.5 py-0.2 rounded flex items-center gap-1">
+                                    <span>⚠️</span>
+                                    <span>รอนาน</span>
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1004,7 +983,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                                   disabled={actionInProgress === entry.id}
                                   onClick={() => handleServe(entry.id)}
                                   className={`flex items-center gap-1.5 font-black text-xs sm:text-sm px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl shadow-md ${
-                                    isLeft
+                                    isThemedAsLeft
                                       ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-600/30'
                                       : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30'
                                   } active:scale-95 transition cursor-pointer flex-shrink-0`}
@@ -1025,7 +1004,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
                                   onClick={() => handleServe(entry.id)}
                                   title="กรณีลูกค้าเรียกตัวขึ้นคิว"
                                   className={`flex items-center gap-1 font-bold text-xs px-2.5 py-1 rounded-lg border ${
-                                    isLeft
+                                    isThemedAsLeft
                                       ? 'border-red-500/40 hover:border-red-400 hover:bg-red-950/40 text-red-300'
                                       : 'border-blue-500/40 hover:border-blue-400 hover:bg-blue-950/40 text-blue-300'
                                   } transition cursor-pointer`}
@@ -1129,23 +1108,26 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
   const isLeft = machineSide === 'LEFT';
   const activeQueue = isLeft ? leftQueue : rightQueue;
 
+  const isLeftRed = !themeSwapped;
+  const isRightRed = themeSwapped;
+
   const effectiveLeftSideTheme = themeSwapped ? activeTheme?.right : activeTheme?.left;
   const effectiveRightSideTheme = themeSwapped ? activeTheme?.left : activeTheme?.right;
 
   const leftSideTitle = effectiveLeftSideTheme
     ? `${effectiveLeftSideTheme.iconEmoji} ${effectiveLeftSideTheme.name} (LEFT)`
-    : '🔴 ทีมแดง (LEFT)';
+    : (isLeftRed ? '🔴 ทีมแดง (LEFT)' : '🔵 ทีมน้ำเงิน (LEFT)');
   const rightSideTitle = effectiveRightSideTheme
     ? `${effectiveRightSideTheme.iconEmoji} ${effectiveRightSideTheme.name} (RIGHT)`
-    : '🔵 ทีมน้ำเงิน (RIGHT)';
+    : (isRightRed ? '🔴 ทีมแดง (RIGHT)' : '🔵 ทีมน้ำเงิน (RIGHT)');
 
   const activeTitle = isLeft ? leftSideTitle : rightSideTitle;
-  const activeColorScheme = isLeft ? 'red' : 'blue';
+  const activeColorScheme = (isLeft ? isLeftRed : isRightRed) ? 'red' : 'blue';
 
   const oppositeSide = isLeft ? 'RIGHT' : 'LEFT';
   const oppositeQueue = isLeft ? rightQueue : leftQueue;
   const oppositeTitle = isLeft ? rightSideTitle : leftSideTitle;
-  const oppositeColorScheme = isLeft ? 'blue' : 'red';
+  const oppositeColorScheme = (!isLeft ? isLeftRed : isRightRed) ? 'red' : 'blue';
 
   return (
     <div className="max-w-7xl 2xl:max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-5 relative">
@@ -1163,13 +1145,23 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
             onClick={() => setDesktopViewMode('CURRENT')}
             className={`px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer ${
               desktopViewMode === 'CURRENT'
-                ? isLeft
+                ? activeColorScheme === 'red'
                   ? 'bg-red-600 text-white shadow-md shadow-red-900/50'
                   : 'bg-blue-600 text-white shadow-md shadow-blue-900/50'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800'
             }`}
           >
-            <span>📌 ฝั่งเครื่องนี้ ({isLeft ? '🔴 ทีมแดง LEFT' : '🔵 ทีมน้ำเงิน RIGHT'})</span>
+            <span>
+              📌 ฝั่งเครื่องนี้ (
+              {isLeft
+                ? isLeftRed
+                  ? '🔴 ทีมแดง คอม 1'
+                  : '🔵 ทีมน้ำเงิน คอม 1'
+                : isRightRed
+                ? '🔴 ทีมแดง คอม 2'
+                : '🔵 ทีมน้ำเงิน คอม 2'}
+              )
+            </span>
           </button>
 
           <button
@@ -1178,14 +1170,24 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
             onClick={() => setDesktopViewMode('OPPOSITE')}
             className={`px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer ${
               desktopViewMode === 'OPPOSITE'
-                ? !isLeft
+                ? oppositeColorScheme === 'red'
                   ? 'bg-red-600 text-white shadow-md shadow-red-900/50'
-                  : 'bg-blue-600 text-white shadow-md shadow-blue-900/50'
+                  : 'bg-blue-600 text-white shadow-blue-900/50'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800'
             }`}
           >
             <Lock className="w-3.5 h-3.5 opacity-80" />
-            <span>↔️ ฝั่งตรงข้าม ({isLeft ? '🔵 ทีมน้ำเงิน RIGHT' : '🔴 ทีมแดง LEFT'})</span>
+            <span>
+              ↔️ ฝั่งตรงข้าม (
+              {isLeft
+                ? isRightRed
+                  ? '🔴 ทีมแดง คอม 2'
+                  : '🔵 ทีมน้ำเงิน คอม 2'
+                : isLeftRed
+                ? '🔴 ทีมแดง คอม 1'
+                : '🔵 ทีมน้ำเงิน คอม 1'}
+              )
+            </span>
           </button>
 
           <button
@@ -1227,7 +1229,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
           <div className="flex items-center gap-2 font-medium">
             <Lock className="w-4 h-4 text-amber-400 flex-shrink-0" />
             <span>
-              กำลังดู <strong>{oppositeTitle}</strong> ใน<strong>โหมดดูอย่างเดียว (READ ONLY)</strong>: เครื่องนี้เป็นเจ้าของฝั่ง <strong>{isLeft ? 'ทีมแดง (ซ้าย)' : 'ทีมน้ำเงิน (ขวา)'}</strong> แก้ไขได้เฉพาะฝั่งตัวเองเท่านั้น
+              กำลังดู <strong>{oppositeTitle}</strong> ใน<strong>โหมดดูอย่างเดียว (READ ONLY)</strong>: เครื่องนี้เป็นเจ้าของฝั่ง <strong>{activeColorScheme === 'red' ? 'ทีมแดง' : 'ทีมน้ำเงิน'}</strong> แก้ไขได้เฉพาะฝั่งตัวเองเท่านั้น
             </span>
           </div>
           <button
@@ -1267,9 +1269,11 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
           {/* Matchup Team Summary Bar */}
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left backdrop-blur-md">
             <div className="flex items-center gap-3">
-              <span className="w-3.5 h-3.5 rounded-full bg-red-500 shadow-lg shadow-red-500/50 animate-pulse" />
+              <span className={`w-3.5 h-3.5 rounded-full ${isLeftRed ? 'bg-red-500 shadow-red-500/50' : 'bg-blue-500 shadow-blue-500/50'} shadow-lg animate-pulse`} />
               <div>
-                <span className="text-sm font-black text-red-400">🔴 ทีมแดง (LEFT)</span>
+                <span className={`text-sm font-black ${isLeftRed ? 'text-red-400' : 'text-blue-400'}`}>
+                  {isLeftRed ? '🔴 ทีมแดง (คอม 1 / LEFT)' : '🔵 ทีมน้ำเงิน (คอม 1 / LEFT)'}
+                </span>
                 <span className="text-xs text-slate-400 ml-2 font-mono">
                   คิวทั้งหมด {leftQueue.length} คน • กำลังผสม {leftQueue.filter((q) => q.status === 'SERVING').length} คน
                 </span>
@@ -1284,18 +1288,20 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({
 
             <div className="flex items-center gap-3">
               <div>
-                <span className="text-sm font-black text-blue-400">🔵 ทีมน้ำเงิน (RIGHT)</span>
+                <span className={`text-sm font-black ${isRightRed ? 'text-red-400' : 'text-blue-400'}`}>
+                  {isRightRed ? '🔴 ทีมแดง (คอม 2 / RIGHT)' : '🔵 ทีมน้ำเงิน (คอม 2 / RIGHT)'}
+                </span>
                 <span className="text-xs text-slate-400 ml-2 font-mono">
                   คิวทั้งหมด {rightQueue.length} คน • กำลังผสม {rightQueue.filter((q) => q.status === 'SERVING').length} คน
                 </span>
               </div>
-              <span className="w-3.5 h-3.5 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50 animate-pulse" />
+              <span className={`w-3.5 h-3.5 rounded-full ${isRightRed ? 'bg-red-500 shadow-red-500/50' : 'bg-blue-500 shadow-blue-500/50'} shadow-lg animate-pulse`} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-            {renderQueueSide('LEFT', leftQueue, leftSideTitle, 'red')}
-            {renderQueueSide('RIGHT', rightQueue, rightSideTitle, 'blue')}
+            {renderQueueSide('LEFT', leftQueue, leftSideTitle, isLeftRed ? 'red' : 'blue')}
+            {renderQueueSide('RIGHT', rightQueue, rightSideTitle, isRightRed ? 'red' : 'blue')}
           </div>
         </div>
       ) : desktopViewMode === 'OPPOSITE' ? (

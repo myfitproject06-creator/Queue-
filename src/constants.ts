@@ -8,6 +8,7 @@ import zenitsuImg from './assets/images/zenitsu_thunder_hero_1790082721020.jpg';
 export { tanjiroImg, akazaImg, nezukoImg, rengokuImg, zenitsuImg };
 
 export const QUICK_REASONS: QuickReasonOption[] = [
+  { key: 'STAND_FRONT', label: 'ยืนข้างหน้า', icon: '🧍' },
   { key: 'HOME', label: 'กลับบ้าน / เลิกงาน', icon: '🏠' },
   { key: 'LUNCH_BREAK', label: 'พัก / กินข้าว', icon: '🍚' },
   { key: 'OTHER_WORK', label: 'ไปทำงานอื่น / ยกของ', icon: '🧰' },

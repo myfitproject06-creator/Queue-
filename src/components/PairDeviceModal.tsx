@@ -12,6 +12,7 @@ interface PairDeviceModalProps {
     deviceId?: string;
     status: 'AUTHORIZED' | 'REVOKED' | 'NOT_REGISTERED';
   }[];
+  themeSwapped?: boolean;
 }
 
 export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({
@@ -19,6 +20,7 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({
   onClose,
   onPairedSuccess,
   registeredDevices,
+  themeSwapped = false,
 }) => {
   const [selectedSide, setSelectedSide] = useState<Side>('LEFT');
   const [pairingCode, setPairingCode] = useState('');
@@ -32,6 +34,43 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({
 
   const isLeftOccupied = leftDevice?.status === 'AUTHORIZED';
   const isRightOccupied = rightDevice?.status === 'AUTHORIZED';
+
+  // Team labels based on themeSwapped
+  const leftTeam = themeSwapped
+    ? {
+        name: 'ทีมน้ำเงิน (BLUE)',
+        icon: '🔵',
+        desc: 'คอม 1 (ฝั่งซ้าย)',
+        activeClasses: 'bg-blue-950/70 border-blue-500 shadow-md shadow-blue-900/40 text-blue-300',
+        textAccent: 'text-blue-400',
+        dotColor: 'bg-blue-400',
+      }
+    : {
+        name: 'ทีมแดง (RED)',
+        icon: '🔴',
+        desc: 'คอม 1 (ฝั่งซ้าย)',
+        activeClasses: 'bg-rose-950/70 border-rose-500 shadow-md shadow-rose-900/40 text-rose-300',
+        textAccent: 'text-rose-400',
+        dotColor: 'bg-rose-400',
+      };
+
+  const rightTeam = themeSwapped
+    ? {
+        name: 'ทีมแดง (RED)',
+        icon: '🔴',
+        desc: 'คอม 2 (ฝั่งขวา)',
+        activeClasses: 'bg-rose-950/70 border-rose-500 shadow-md shadow-rose-900/40 text-rose-300',
+        textAccent: 'text-rose-400',
+        dotColor: 'bg-rose-400',
+      }
+    : {
+        name: 'ทีมน้ำเงิน (BLUE)',
+        icon: '🔵',
+        desc: 'คอม 2 (ฝั่งขวา)',
+        activeClasses: 'bg-blue-950/70 border-blue-500 shadow-md shadow-blue-900/40 text-blue-300',
+        textAccent: 'text-blue-400',
+        dotColor: 'bg-blue-400',
+      };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,55 +139,69 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({
           {/* Side Selector */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-2">
-              เลือกฝั่งของเครื่องคอมพิวเตอร์เครื่องนี้:
+              เลือกประจำการเครื่องนี้ (เลือกทีมและเครื่อง):
             </label>
             <div className="grid grid-cols-2 gap-3">
+              {/* Left Side Button */}
               <button
                 type="button"
                 id="select-pair-side-left"
                 onClick={() => setSelectedSide('LEFT')}
                 className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
                   selectedSide === 'LEFT'
-                    ? 'bg-blue-950/70 border-blue-500 shadow-md shadow-blue-900/30'
+                    ? leftTeam.activeClasses
                     : 'bg-slate-950/40 border-slate-800 hover:border-slate-700'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-bold text-blue-400">🟦 ฝั่ง LEFT</span>
+                  <div className="flex items-center gap-1.5">
+                    <span>{leftTeam.icon}</span>
+                    <span className={`text-xs font-bold ${leftTeam.textAccent}`}>
+                      {leftTeam.name}
+                    </span>
+                  </div>
                   {selectedSide === 'LEFT' && (
-                    <span className="w-2 h-2 rounded-full bg-blue-400" />
+                    <span className={`w-2 h-2 rounded-full ${leftTeam.dotColor}`} />
                   )}
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[10px] text-slate-400 mb-1">{leftTeam.desc}</div>
+                <div className="text-[11px]">
                   {isLeftOccupied ? (
-                    <span className="text-amber-400">มีเครื่องอยู่แล้ว ({leftDevice?.deviceId})</span>
+                    <span className="text-amber-400">มีเครื่องอยู่ ({leftDevice?.deviceId})</span>
                   ) : (
-                    <span className="text-emerald-400">ว่าง (พร้อมลงทะเบียน)</span>
+                    <span className="text-emerald-400 font-medium">ว่าง (พร้อมลงทะเบียน)</span>
                   )}
                 </div>
               </button>
 
+              {/* Right Side Button */}
               <button
                 type="button"
                 id="select-pair-side-right"
                 onClick={() => setSelectedSide('RIGHT')}
                 className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
                   selectedSide === 'RIGHT'
-                    ? 'bg-emerald-950/70 border-emerald-500 shadow-md shadow-emerald-900/30'
+                    ? rightTeam.activeClasses
                     : 'bg-slate-950/40 border-slate-800 hover:border-slate-700'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-bold text-emerald-400">🟩 ฝั่ง RIGHT</span>
+                  <div className="flex items-center gap-1.5">
+                    <span>{rightTeam.icon}</span>
+                    <span className={`text-xs font-bold ${rightTeam.textAccent}`}>
+                      {rightTeam.name}
+                    </span>
+                  </div>
                   {selectedSide === 'RIGHT' && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className={`w-2 h-2 rounded-full ${rightTeam.dotColor}`} />
                   )}
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[10px] text-slate-400 mb-1">{rightTeam.desc}</div>
+                <div className="text-[11px]">
                   {isRightOccupied ? (
-                    <span className="text-amber-400">มีเครื่องอยู่แล้ว ({rightDevice?.deviceId})</span>
+                    <span className="text-amber-400">มีเครื่องอยู่ ({rightDevice?.deviceId})</span>
                   ) : (
-                    <span className="text-emerald-400">ว่าง (พร้อมลงทะเบียน)</span>
+                    <span className="text-emerald-400 font-medium">ว่าง (พร้อมลงทะเบียน)</span>
                   )}
                 </div>
               </button>
@@ -156,7 +209,7 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({
             {((selectedSide === 'LEFT' && isLeftOccupied) ||
               (selectedSide === 'RIGHT' && isRightOccupied)) && (
               <p className="mt-2 text-[11px] text-amber-300">
-                * หากต้องการเปลี่ยนเครื่องกลางของฝั่งนี้ กรุณาให้เครื่องเดิมกดถอนสิทธิ์ (Revoke) ก่อน
+                * ฝั่งนี้มีเครื่องลงทะเบียนอยู่แล้ว หากต้องการสลับเครื่องใหม่ กรุณากดปลดล็อคเครื่องเดิมก่อน
               </p>
             )}
           </div>

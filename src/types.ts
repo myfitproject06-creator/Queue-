@@ -33,6 +33,7 @@ export interface QueueEntry {
 }
 
 export type QuickReasonKey = 
+  | 'STAND_FRONT'
   | 'HOME' 
   | 'LUNCH_BREAK' 
   | 'OTHER_WORK' 
@@ -86,6 +87,7 @@ export interface DeviceAuthStatusResponse {
     status: 'AUTHORIZED' | 'REVOKED' | 'NOT_REGISTERED';
     lastSeenAt?: string;
   }[];
+  themeSwapped?: boolean;
   pairingCodeHint?: string;
 }
 

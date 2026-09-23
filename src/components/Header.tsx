@@ -31,6 +31,7 @@ interface HeaderProps {
   lastSwitch?: SideSwitchRecord | null;
   canUndoSwitch?: boolean;
   onUndoSwitch?: () => void;
+  themeSwapped?: boolean;
   authorizedDevice?: AuthorizedDevice | null;
   onOpenDeviceManagement?: () => void;
 }
@@ -48,6 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
   lastSwitch,
   canUndoSwitch,
   onUndoSwitch,
+  themeSwapped = false,
   authorizedDevice,
   onOpenDeviceManagement,
 }) => {
@@ -86,6 +88,13 @@ export const Header: React.FC<HeaderProps> = ({
   const isNoonTime = hours === 12 && minutes <= 10;
   const minutesToNoon = isApproachingNoon ? 60 - minutes : 0;
 
+  // Determine machine team color based on side and themeSwapped
+  // Normally: คอม 1 (LEFT) = RED TEAM, คอม 2 (RIGHT) = BLUE TEAM
+  // When swapped: คอม 1 (LEFT) = BLUE TEAM, คอม 2 (RIGHT) = RED TEAM
+  const isRedTeam = machineSide === 'LEFT' ? !themeSwapped : themeSwapped;
+  const currentTeamName = isRedTeam ? '🔴 ทีมแดง' : '🔵 ทีมน้ำเงิน';
+  const machineNumber = machineSide === 'LEFT' ? 'คอม 1' : machineSide === 'RIGHT' ? 'คอม 2' : '';
+
   const timeString = currentTime.toLocaleTimeString('th-TH', {
     hour: '2-digit',
     minute: '2-digit',
@@ -117,8 +126,8 @@ export const Header: React.FC<HeaderProps> = ({
           <Clock className="w-4 h-4 flex-shrink-0" />
           <span>
             {isNoonTime
-              ? '🕛 ถึงเวลาสลับฝั่ง (12:00) แล้ว! กรุณากดปุ่ม "สลับฝั่ง" เพื่อสลับคิวพนักงาน LEFT ↔ RIGHT'
-              : `🕛 ใกล้เวลาสลับฝั่งตอน 12:00 น. (เหลือเวลาอีกประมาณ ${minutesToNoon} นาที)`}
+              ? '🕛 ถึงเวลาสลับฝั่ง (12:00) แล้ว! ระบบสลับฝั่งและธีมสีอัตโนมัติ (คอม 1 ➔ ทีมน้ำเงิน, คอม 2 ➔ ทีมแดง)'
+              : `🕛 ใกล้เวลาสลับฝั่งตอน 12:00 น. (เหลือเวลาอีกประมาณ ${minutesToNoon} นาที) คิวและธีมสีจะสลับฝั่ง`}
           </span>
           <button
             id="header-alert-switch-btn"
@@ -161,21 +170,19 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onOpenDeviceManagement || onOpenMachineSelect}
               title="คลิกเพื่อดูสถานะเครื่องและจัดการการเชื่อมต่อ (Device Management)"
               className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
-                machineSide === 'LEFT'
+                !machineSide
+                  ? 'bg-amber-950/60 border-amber-600 text-amber-300 hover:bg-amber-900'
+                  : isRedTeam
                   ? 'bg-red-950/60 border-red-500/50 text-red-200 hover:bg-red-900/60 shadow-sm'
-                  : machineSide === 'RIGHT'
-                  ? 'bg-blue-950/60 border-blue-500/50 text-blue-200 hover:bg-blue-900/60 shadow-sm'
-                  : 'bg-amber-950/60 border-amber-600 text-amber-300 hover:bg-amber-900'
+                  : 'bg-blue-950/60 border-blue-500/50 text-blue-200 hover:bg-blue-900/60 shadow-sm'
               }`}
             >
               <Monitor className="w-3.5 h-3.5 text-slate-400" />
               <span>
                 {authorizedDevice?.deviceId
-                  ? `${machineSide === 'LEFT' ? '🔴 ทีมแดง' : '🔵 ทีมน้ำเงิน'} (${authorizedDevice.deviceId})`
-                  : machineSide === 'LEFT'
-                  ? '🔴 ทีมแดง (PC_LEFT)'
-                  : machineSide === 'RIGHT'
-                  ? '🔵 ทีมน้ำเงิน (PC_RIGHT)'
+                  ? `${currentTeamName} (${machineNumber} • ${authorizedDevice.deviceId})`
+                  : machineSide
+                  ? `${currentTeamName} (${machineNumber})`
                   : '⚠️ ยังไม่เลือกฝั่ง'}
               </span>
               <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/90 border border-emerald-600/60 px-1.5 py-0.5 rounded-md">
